@@ -454,7 +454,11 @@ button{cursor:pointer;outline:none;transition:0.2s;}
     0%, 50%, 100% { opacity: 0; }
     25%, 75% { opacity: 1; }
 }
+#posCheckout.minAlert {
+  background:#f39c12 !important;
+}
 
+  
 </style>
 </head>
 
@@ -490,8 +494,19 @@ button{cursor:pointer;outline:none;transition:0.2s;}
       <span>商品</span><span>數量</span><span>單價</span><span>小計</span><span>刪除</span>
     </div>
     <div id="posCart"></div>
-    
-    <div id="taxContainer">
+  
+    <!-- ===== 桌號 / 人數 / 低消 ===== -->
+   <div id="tableInfo" style="margin:8px 0;font-size:14px;">
+  桌號：
+  <input id="tableNo" style="width:60px;">
+  人數：
+  <input id="peopleCount" type="number" min="1" value="1" style="width:60px;">
+  <span style="margin-left:10px;">
+    低消：<b><span id="minConsume">0</span></b> 元
+  </span>
+  </div>
+  
+  <div id="taxContainer">
   <button id="taxIncluded" class="active" onclick="setTax('應稅')">應稅</button>
   <button id="taxExempt" onclick="setTax('免稅')">免稅</button>
 </div>
@@ -517,11 +532,14 @@ button{cursor:pointer;outline:none;transition:0.2s;}
   <span class="label">應收總額：</span>
   <span class="value"><span id="posTotal">0</span> 元</span>
 </div>
-
+<div id="minConsumeAlert"
+     style="display:none;color:#c0392b;font-weight:bold;font-size:13px;">
+⚠ 未達低消，已以低消計算
+</div>
 
    <div id="paymentButtons">
   <button class="payBtn" data-pay="現金">現金</button>
-  <button class="payBtn" data-pay="信用卡">信用卡</button>
+  <button class="payBtn" data-pay="刷卡">刷卡</button>
   <button class="payBtn" data-pay="Line Pay">Line Pay</button>
 </div>
 
@@ -597,6 +615,21 @@ button{cursor:pointer;outline:none;transition:0.2s;}
     </div>
   </div>
 </div>
+<!-- ===== 低消補差確認視窗 ===== -->
+<div id="minConsumeConfirm"
+style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.45);z-index:100000;
+justify-content:center;align-items:center;">
+  <div style="background:white;padding:20px;border-radius:12px;width:90%;max-width:360px;text-align:center;">
+    <h3 style="color:#e67e22;margin-top:0;">⚠ 低消補差確認</h3>
+    <p id="minConsumeConfirmText"></p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="cancelMinConsumeCheckout()" style="flex:1;">取消</button>
+      <button onclick="confirmMinConsumeCheckout()" style="flex:1;background:#e67e22;color:white;">確認結帳</button>
+    </div>
+  </div>
+</div>
+
     
 <!-- 列印收據區 -->
 <div id="printArea"></div>
@@ -868,7 +901,24 @@ function renderCart() {
     let afterTax = totalBeforeTax + tax;
 
     // 折扣
-    let discountValue = Number(document.getElementById("discount").value) || 0;
+    let actualAmount = afterTax - discountValue;
+let minConsume = updateMinConsume();
+let receivable = Math.max(actualAmount, minConsume);
+
+const alertEl = document.getElementById("minConsumeAlert");
+const posTotalEl = document.getElementById("posTotal");
+const checkoutBtn = document.getElementById("posCheckout");
+
+if(actualAmount < minConsume && minConsume > 0){
+  alertEl.style.display="block";
+  posTotalEl.style.color="#c0392b";
+  checkoutBtn.classList.add("minAlert");
+}else{
+  alertEl.style.display="none";
+  posTotalEl.style.color="#2c3e50";
+  checkoutBtn.classList.remove("minAlert");
+}
+
 
     // 應收總額
     let receivable = afterTax - discountValue;
@@ -921,7 +971,7 @@ async function updateTodaySales() {
 —————————————
 總額：${data.total.toFixed(0)} 元
 現金：${data.cash.toFixed(0)} 元
-信用卡：${data.credit.toFixed(0)} 元
+刷卡：${data.credit.toFixed(0)} 元
 Line Pay：${data.linePay.toFixed(0)} 元`;
 
     } else {
@@ -967,7 +1017,7 @@ document.getElementById("shiftEndBtn").onclick = async function() {
   alert(`交班成功！
 本班總營業額：${data.total} 元
 現金：${data.cash} 元
-信用卡：${data.credit} 元
+刷卡：${data.credit} 元
 Line Pay：${data.linePay} 元`);
 
   posCart = [];
@@ -1175,6 +1225,37 @@ function kpConfirm() {
 
     document.getElementById("posKeypadModal").style.display = "none";
 }
+const MIN_PER_PERSON = 350;
+let allowMinConsumeCheckout = false;
+
+function updateMinConsume(){
+  const p = Number(document.getElementById("peopleCount").value)||0;
+  const m = p * MIN_PER_PERSON;
+  document.getElementById("minConsume").innerText = formatNumber(m);
+  return m;
+}
+
+document.getElementById("peopleCount").addEventListener("input",()=>{
+  updateMinConsume();
+  renderCart();
+});
+
+function showMinConsumeConfirm(actual,min){
+  document.getElementById("minConsumeConfirmText").innerHTML =
+    `實際消費 ${formatNumber(actual)} 元<br>
+     低消 ${formatNumber(min)} 元<br>
+     需補差 <b style="color:#c0392b">${formatNumber(min-actual)}</b> 元`;
+  document.getElementById("minConsumeConfirm").style.display="flex";
+}
+function cancelMinConsumeCheckout(){
+  allowMinConsumeCheckout=false;
+  document.getElementById("minConsumeConfirm").style.display="none";
+}
+function confirmMinConsumeCheckout(){
+  allowMinConsumeCheckout=true;
+  document.getElementById("minConsumeConfirm").style.display="none";
+  document.getElementById("posCheckout").click();
+}
 
   
 function setTax(t) {
@@ -1296,6 +1377,17 @@ async function printerIsReady() {
 
 // ===== 結帳：先入帳 → 再嘗試列印到自動抓取的印表機 ===== 
 document.getElementById("posCheckout").onclick = async function () {
+  let actual =
+  parseNumber(document.getElementById("afterTax").innerText) -
+  (Number(document.getElementById("discount").value)||0);
+let min = updateMinConsume();
+
+if(actual < min && !allowMinConsumeCheckout){
+  showMinConsumeConfirm(actual,min);
+  return;
+}
+allowMinConsumeCheckout=false;
+
 
     if (posCart.length === 0) {
         alert("購物車是空的。");
