@@ -1375,8 +1375,11 @@ function calcDiscountedSubtotal(item) {
 }
 
   async function sendCheckoutToSheet() {
-
     const now = new Date();
+
+    // 取得前端的桌號與客戶數
+    const tableNumber = document.getElementById("tableNumber")?.value || "";
+    const customerCount = Number(document.getElementById("customerCount")?.value) || 0;
 
     const payload = {
         orderDate: now.toLocaleDateString("zh-TW"),
@@ -1394,18 +1397,19 @@ function calcDiscountedSubtotal(item) {
         cashReceive: Number(document.getElementById("cashInput").value) || 0,
         change: Number(document.getElementById("changeOut").innerText) || 0,
 
-        items: posCart.map(it => {
+        // ★ 新增桌號與客戶數
+        tableNumber: tableNumber,      // 對應 S 欄
+        customerCount: customerCount,  // 對應 T 欄
 
-            // ① 小計（折扣後）
+        items: posCart.map(it => {
+            // 小計（折扣後）
             const discountedSubtotal = calcDiscountedSubtotal(it);
 
-            // ② 折扣文字（ex: 95折 / 買二送一）
+            // 折扣文字（ex: 95折 / 買二送一）
             let promoText = "";
             if (it.discount) {
                 if (it.discount.type === "折扣") {
                     promoText = formatDiscountRate(it.discount.rate);
-
-
                 } else {
                     promoText = it.discount.type;
                 }
@@ -1416,20 +1420,30 @@ function calcDiscountedSubtotal(item) {
                 name: it.name,
                 quantity: it.quantity,
                 price: it.price,
-
-                // 寫入試算表的：折扣後小計
                 subtotal: discountedSubtotal,
-
-                // 寫入試算表的折扣名稱
                 promo: promoText
             };
         })
     };
 
-    await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-    });
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+            console.log("結帳成功寫入試算表");
+        } else {
+            console.error("結帳失敗:", result.message);
+        }
+    } catch (err) {
+        console.error("傳送結帳資料失敗:", err);
+    }
 }
 
 // ===== 印表機狀態檢查（不影響結帳）=====
