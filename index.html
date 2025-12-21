@@ -898,18 +898,17 @@ function renderCart() {
     });
 
     // 計算稅額
-    let tax = currentTax === "應稅" ? Math.round(totalBeforeTax * 0.05) : 0;
-    let afterTax = totalBeforeTax + tax;
+let tax = currentTax === "應稅" ? Math.round(totalBeforeTax * 0.05) : 0;
+let afterTax = totalBeforeTax + tax;
 
-    // ===== 折扣 + 低消計算（唯一的 receivable 宣告）=====
-    let actualAmount = afterTax - discountValue;
-    let minConsume = updateMinConsume();
-    let receivable = Math.max(actualAmount, minConsume);
+// ⭐ 補回折扣金額（原本就有，只是被漏掉）
+let discountValue = Number(document.getElementById("discount").value) || 0;
 
-    // ===== 低消視覺提示 =====
-    const alertEl = document.getElementById("minConsumeAlert");
-    const posTotalEl = document.getElementById("posTotal");
-    const checkoutBtn = document.getElementById("posCheckout");
+// ===== 折扣 + 低消計算 =====
+let actualAmount = afterTax - discountValue;
+let minConsume = updateMinConsume();
+let receivable = Math.max(actualAmount, minConsume);
+
 
     if (actualAmount < minConsume && minConsume > 0) {
         alertEl.style.display = "block";
