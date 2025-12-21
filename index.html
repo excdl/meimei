@@ -1478,12 +1478,20 @@ allowMinConsumeCheckout=false;
         return out.join("\n");
     }
 
-    // ===== Step 2：清空購物車 =====
-    posCart = [];
-    if(document.getElementById("discount")) document.getElementById("discount").value="0";
-    if(document.getElementById("cashInput")) document.getElementById("cashInput").value="";
-    if(document.getElementById("changeOut")) document.getElementById("changeOut").innerText="0";
-    if(typeof renderCart==="function") renderCart();
+    // ===== Step 2：清空購物車、桌號、人數 ===== 
+posCart = [];
+
+// 清空折扣、現金輸入、找零
+if (document.getElementById("discount")) document.getElementById("discount").value = "0";
+if (document.getElementById("cashInput")) document.getElementById("cashInput").value = "";
+if (document.getElementById("changeOut")) document.getElementById("changeOut").innerText = "0";
+
+// 清空桌號與人數
+if (document.getElementById("tableNumber")) document.getElementById("tableNumber").value = "";
+if (document.getElementById("orderCustomers")) document.getElementById("orderCustomers").value = "1"; // 預設 1 人
+
+// 重新渲染購物車
+if (typeof renderCart === "function") renderCart();
 
     // ===== Step 3：抓取 QZ Tray 所有印表機並列印 =====
     if(window.qz){
