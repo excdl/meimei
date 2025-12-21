@@ -888,7 +888,8 @@ function renderCart() {
 
         const row = document.createElement("div");
         row.className = "cartRow";
-        row.innerHTML = `<span class="name" onclick="openPromoModal(posCart[${i}])">${item.name}</span>
+        row.innerHTML = `
+            <span class="name" onclick="openPromoModal(posCart[${i}])">${item.name}</span>
             <span class="qty" onclick="openEditModal(${i},'quantity')">${item.quantity.toFixed(2)} ${item.unit}</span>
             <span class="price" onclick="openEditModal(${i},'price')">${item.price}</span>
             <span class="subtotal">${formatNumber(Math.round(sub))}</span>
@@ -900,42 +901,39 @@ function renderCart() {
     let tax = currentTax === "應稅" ? Math.round(totalBeforeTax * 0.05) : 0;
     let afterTax = totalBeforeTax + tax;
 
-    // 折扣
+    // ===== 折扣 + 低消計算（唯一的 receivable 宣告）=====
     let actualAmount = afterTax - discountValue;
-let minConsume = updateMinConsume();
-let receivable = Math.max(actualAmount, minConsume);
+    let minConsume = updateMinConsume();
+    let receivable = Math.max(actualAmount, minConsume);
 
-const alertEl = document.getElementById("minConsumeAlert");
-const posTotalEl = document.getElementById("posTotal");
-const checkoutBtn = document.getElementById("posCheckout");
+    // ===== 低消視覺提示 =====
+    const alertEl = document.getElementById("minConsumeAlert");
+    const posTotalEl = document.getElementById("posTotal");
+    const checkoutBtn = document.getElementById("posCheckout");
 
-if(actualAmount < minConsume && minConsume > 0){
-  alertEl.style.display="block";
-  posTotalEl.style.color="#c0392b";
-  checkoutBtn.classList.add("minAlert");
-}else{
-  alertEl.style.display="none";
-  posTotalEl.style.color="#2c3e50";
-  checkoutBtn.classList.remove("minAlert");
-}
+    if (actualAmount < minConsume && minConsume > 0) {
+        alertEl.style.display = "block";
+        posTotalEl.style.color = "#c0392b";
+        checkoutBtn.classList.add("minAlert");
+    } else {
+        alertEl.style.display = "none";
+        posTotalEl.style.color = "#2c3e50";
+        checkoutBtn.classList.remove("minAlert");
+    }
 
-
-    // 應收總額
-    let receivable = afterTax - discountValue;
-
-    // 更新畫面上的金額
+    // ===== 更新畫面金額 =====
     document.getElementById("beforeTax").innerText = formatNumber(Math.round(totalBeforeTax));
     document.getElementById("taxAmount").innerText = formatNumber(Math.round(tax));
     document.getElementById("afterTax").innerText = formatNumber(Math.round(afterTax));
 
-    // 顯示應收總額並存原始數字給找零使用
-    const posTotalEl = document.getElementById("posTotal");
+    // 應收總額（含低消）
     posTotalEl.dataset.value = receivable;
     posTotalEl.innerText = formatNumber(Math.round(receivable));
 
     // 更新找零
     updateChange();
 }
+
 
 // ===== 計算找零 =====
 function updateChange() {
