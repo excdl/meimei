@@ -885,19 +885,20 @@ function renderProducts(category = null, search = "") {
         .forEach(p => {
             const card = document.createElement("div");
             card.className = "product-card";
-            // 文字版卡片
             card.innerHTML = `
                 <h4>${p["商品名稱"]}</h4>
                 <p>${p["售價"]} 元 / ${p["單位"]}</p>
             `;
+
+            // ⭐ 點擊商品時判斷是否存酒
             card.onclick = () => {
-    if (p["是否存酒"] === "Y") {
-        const storeIt = confirm(`【${p["商品名稱"]}】\n是否存酒？`);
-        addPOSItem(p, storeIt);
-    } else {
-        addPOSItem(p, false);
-    }
-};
+                if (p["是否存酒"] === "Y") {
+                    const storeIt = confirm(`【${p["商品名稱"]}】\n是否要存酒？`);
+                    addPOSItem(p, storeIt);
+                } else {
+                    addPOSItem(p, false);
+                }
+            };
 
             box.appendChild(card);
         });
