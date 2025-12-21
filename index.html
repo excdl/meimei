@@ -872,7 +872,6 @@ function renderCart() {
     box.innerHTML = "";
     let totalBeforeTax = 0;
 
-    // 計算每一項小計
     posCart.forEach((item, i) => {
         let sub = item.quantity * item.price;
         if (item.discount) {
@@ -897,39 +896,35 @@ function renderCart() {
         box.appendChild(row);
     });
 
-    // 計算稅額
-let tax = currentTax === "應稅" ? Math.round(totalBeforeTax * 0.05) : 0;
-let afterTax = totalBeforeTax + tax;
+    let tax = currentTax === "應稅" ? Math.round(totalBeforeTax * 0.05) : 0;
+    let afterTax = totalBeforeTax + tax;
 
-// ⭐ 補回折扣金額（原本就有，只是被漏掉）
-let discountValue = Number(document.getElementById("discount").value) || 0;
+    let discountValue = Number(document.getElementById("discount").value) || 0;
+    let actualAmount = afterTax - discountValue;
+    let minConsume = updateMinConsume();
+    let receivable = Math.max(actualAmount, minConsume);
 
-// ===== 折扣 + 低消計算 =====
-let actualAmount = afterTax - discountValue;
-let minConsume = updateMinConsume();
-let receivable = Math.max(actualAmount, minConsume);
-
+    const alertEl = document.getElementById("minConsumeAlert");
+    const posTotalEl = document.getElementById("posTotal");
+    const checkoutBtn = document.getElementById("posCheckout");
 
     if (actualAmount < minConsume && minConsume > 0) {
-        alertEl.style.display = "block";
+        if (alertEl) alertEl.style.display = "block";
         posTotalEl.style.color = "#c0392b";
         checkoutBtn.classList.add("minAlert");
     } else {
-        alertEl.style.display = "none";
+        if (alertEl) alertEl.style.display = "none";
         posTotalEl.style.color = "#2c3e50";
         checkoutBtn.classList.remove("minAlert");
     }
 
-    // ===== 更新畫面金額 =====
     document.getElementById("beforeTax").innerText = formatNumber(Math.round(totalBeforeTax));
     document.getElementById("taxAmount").innerText = formatNumber(Math.round(tax));
     document.getElementById("afterTax").innerText = formatNumber(Math.round(afterTax));
 
-    // 應收總額（含低消）
     posTotalEl.dataset.value = receivable;
     posTotalEl.innerText = formatNumber(Math.round(receivable));
 
-    // 更新找零
     updateChange();
 }
 
