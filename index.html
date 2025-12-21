@@ -1379,22 +1379,25 @@ function calcDiscountedSubtotal(item) {
     const now = new Date();
 
     const payload = {
-        orderDate: now.toLocaleDateString("zh-TW"),
-        orderTime: now.toLocaleTimeString("zh-TW", { hour12: false }),
-        checkoutDateTime: now.toLocaleString("zh-TW", { hour12: false }),
+    orderDate: now.toLocaleDateString("zh-TW"),
+    orderTime: now.toLocaleTimeString("zh-TW", { hour12: false }),
+    checkoutDateTime: now.toLocaleString("zh-TW", { hour12: false }),
 
-        storeName: document.getElementById("storeInfo").innerText.split("（")[0],
-        storeCode: POS_STORE,
+    storeName: document.getElementById("storeInfo").innerText.split("（")[0],
+    storeCode: POS_STORE,
 
-        taxStatus: currentTax,
-        totalAmount: parseNumber(document.getElementById("posTotal").innerText),
-        taxAmount: parseNumber(document.getElementById("taxAmount").innerText),
-        paymentMethod: document.getElementById("posPayment").value,
-        discount: Number(document.getElementById("discount").value) || 0,
-        cashReceive: Number(document.getElementById("cashInput").value) || 0,
-        change: Number(document.getElementById("changeOut").innerText) || 0,
+    tableNumber: document.getElementById("tableNumber")?.value || "",
+    peopleCount: Number(document.getElementById("orderCustomers")?.value) || 0,
 
-        items: posCart.map(it => {
+    taxStatus: currentTax,
+    totalAmount: parseNumber(document.getElementById("posTotal").innerText),
+    taxAmount: parseNumber(document.getElementById("taxAmount").innerText),
+    paymentMethod: document.getElementById("posPayment").value,
+    discount: Number(document.getElementById("discount").value) || 0,
+    cashReceive: Number(document.getElementById("cashInput").value) || 0,
+    change: Number(document.getElementById("changeOut").innerText) || 0,
+
+    items: posCart.map(it => {
 
             // ① 小計（折扣後）
             const discountedSubtotal = calcDiscountedSubtotal(it);
