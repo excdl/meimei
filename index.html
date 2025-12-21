@@ -888,23 +888,48 @@ function renderProducts(category = null, search = "") {
                 <h4>${p["商品名稱"]}</h4>
                 <p>${p["售價"]} 元 / ${p["單位"]}</p>
             `;
-            card.onclick = () => addPOSItem(p);
+            card.onclick = () => {
+    if (p["是否存酒"] === "Y") {
+        const storeIt = confirm(`【${p["商品名稱"]}】\n是否存酒？`);
+        addPOSItem(p, storeIt);
+    } else {
+        addPOSItem(p, false);
+    }
+};
+
             box.appendChild(card);
         });
 }
 
-
-// ===== 加入購物車 =====
-function addPOSItem(p) {
+// ===== 加入購物車（支援存酒） =====
+function addPOSItem(p, forceStore = false) {
     let qtyAdd = 1;
     let pricePerUnit = Number(p["售價"]);
     let unit = p["單位"];
     if (p["單位"] === "半斤") { qtyAdd = 0.5; pricePerUnit *= 2; unit = "斤"; }
-    let exist = posCart.find(x => x.name === p["商品名稱"]);
-    if (exist) { exist.quantity += qtyAdd; }
-    else { posCart.push({ name: p["商品名稱"], quantity: qtyAdd, price: pricePerUnit, unit: unit, discount: null }); }
+
+    // 判斷購物車是否已有相同商品（存酒狀態不同也算不同）
+    let exist = posCart.find(x => x.name === p["商品名稱"] && x.isStored === forceStore);
+
+    if (exist) {
+        exist.quantity += qtyAdd;
+    } else {
+        posCart.push({
+            name: p["商品名稱"],
+            quantity: qtyAdd,
+            price: pricePerUnit,
+            unit: unit,
+            discount: null,
+
+            // ⭐ 存酒相關
+            isStored: forceStore,
+            storeMonths: Number(p["存酒期限(月)"]) || 0
+        });
+    }
+
     renderCart();
 }
+
 
 // 初始化付款方式按鈕
 function initPOSButtons() {
@@ -1374,47 +1399,38 @@ function calcDiscountedSubtotal(item) {
     return Math.round(sub);
 }
 
-  async function sendCheckoutToSheet() {
-
+ async function sendCheckoutToSheet() {
     const now = new Date();
 
+    // ===== payload 基本資料 =====
     const payload = {
-    orderDate: now.toLocaleDateString("zh-TW"),
-    orderTime: now.toLocaleTimeString("zh-TW", { hour12: false }),
-    checkoutDateTime: now.toLocaleString("zh-TW", { hour12: false }),
+        orderDate: now.toLocaleDateString("zh-TW"),
+        orderTime: now.toLocaleTimeString("zh-TW", { hour12: false }),
+        checkoutDateTime: now.toLocaleString("zh-TW", { hour12: false }),
 
-    storeName: document.getElementById("storeInfo").innerText.split("（")[0],
-    storeCode: POS_STORE,
+        storeName: document.getElementById("storeInfo").innerText.split("（")[0],
+        storeCode: POS_STORE,
 
-    tableNumber: document.getElementById("tableNumber")?.value || "",
-    peopleCount: Number(document.getElementById("orderCustomers")?.value) || 0,
+        tableNumber: document.getElementById("tableNumber")?.value || "",
+        peopleCount: Number(document.getElementById("peopleCount")?.value) || 0,
 
-    taxStatus: currentTax,
-    totalAmount: parseNumber(document.getElementById("posTotal").innerText),
-    taxAmount: parseNumber(document.getElementById("taxAmount").innerText),
-    paymentMethod: document.getElementById("posPayment").value,
-    discount: Number(document.getElementById("discount").value) || 0,
-    cashReceive: Number(document.getElementById("cashInput").value) || 0,
-    change: Number(document.getElementById("changeOut").innerText) || 0,
-    tableNumber: document.getElementById("tableNo")?.value || "",
-    peopleCount: Number(document.getElementById("peopleCount")?.value) || 0,
+        taxStatus: currentTax,
+        totalAmount: parseNumber(document.getElementById("posTotal").innerText),
+        taxAmount: parseNumber(document.getElementById("taxAmount").innerText),
+        paymentMethod: document.getElementById("posPayment").value,
+        discount: Number(document.getElementById("discount").value) || 0,
+        cashReceive: Number(document.getElementById("cashInput").value) || 0,
+        change: Number(document.getElementById("changeOut").innerText) || 0,
 
-
-    items: posCart.map(it => {
-
-            // ① 小計（折扣後）
+        // 購物車商品
+        items: posCart.map(it => {
             const discountedSubtotal = calcDiscountedSubtotal(it);
 
-            // ② 折扣文字（ex: 95折 / 買二送一）
             let promoText = "";
             if (it.discount) {
-                if (it.discount.type === "折扣") {
-                    promoText = formatDiscountRate(it.discount.rate);
-
-
-                } else {
-                    promoText = it.discount.type;
-                }
+                promoText = it.discount.type === "折扣"
+                    ? formatDiscountRate(it.discount.rate)
+                    : it.discount.type;
             }
 
             return {
@@ -1422,21 +1438,46 @@ function calcDiscountedSubtotal(item) {
                 name: it.name,
                 quantity: it.quantity,
                 price: it.price,
-
-                // 寫入試算表的：折扣後小計
                 subtotal: discountedSubtotal,
-
-                // 寫入試算表的折扣名稱
                 promo: promoText
             };
         })
     };
 
+    // ===== 自動產生存酒資料 =====
+    function addMonths(date, months){
+        const d = new Date(date);
+        d.setMonth(d.getMonth() + months);
+        return d.toLocaleDateString("zh-TW");
+    }
+
+    const storedItems = posCart
+        .filter(it => it.isStored)
+        .map(it => ({
+            storeCode: POS_STORE,
+            storeName: document.getElementById("storeInfo").innerText.split("（")[0],
+
+            customerName: document.getElementById("customerName")?.value || "",
+            customerPhone: document.getElementById("customerPhone")?.value || "",
+
+            productName: it.name,
+            totalQty: it.quantity,
+            remainQty: it.quantity,
+            unit: it.unit,
+
+            storeDate: now.toLocaleDateString("zh-TW"),
+            expireDate: addMonths(now, it.storeMonths)
+        }));
+
+    payload.storedItems = storedItems;
+
+    // ===== 送出至 GAS =====
     await fetch(API_URL, {
         method: "POST",
         body: JSON.stringify(payload)
     });
 }
+
 
 // ===== 印表機狀態檢查（不影響結帳）=====
 async function printerIsReady() {
