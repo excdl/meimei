@@ -806,18 +806,26 @@ document.getElementById("searchBox").oninput = function () {
 function renderProducts(category = null, search = "") {
     const box = document.getElementById("posProducts");
     box.innerHTML = "";
-    products.filter(p => {
-        if (category && p["類別"] !== category) return false;
-        if (search && !p["商品名稱"].toLowerCase().includes(search)) return false;
-        return true;
-    }).forEach(p => {
-        const card = document.createElement("div");
-        card.className = "product-card";
-        card.innerHTML = `<img src="${p["商品照片"]}"><h4>${p["商品名稱"]}</h4><p>${p["售價"]} 元 / ${p["單位"]}</p>`;
-        card.onclick = () => addPOSItem(p);
-        box.appendChild(card);
-    });
+
+    products
+        .filter(p => {
+            if (category && p["類別"] !== category) return false;
+            if (search && !p["商品名稱"].toLowerCase().includes(search)) return false;
+            return true;
+        })
+        .forEach(p => {
+            const card = document.createElement("div");
+            card.className = "product-card";
+            // 文字版卡片
+            card.innerHTML = `
+                <h4>${p["商品名稱"]}</h4>
+                <p>${p["售價"]} 元 / ${p["單位"]}</p>
+            `;
+            card.onclick = () => addPOSItem(p);
+            box.appendChild(card);
+        });
 }
+
 
 // ===== 加入購物車 =====
 function addPOSItem(p) {
