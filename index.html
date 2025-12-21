@@ -616,6 +616,8 @@ button{cursor:pointer;outline:none;transition:0.2s;}
 </div>
 
 <input type="hidden" id="posPayment" value="">
+<input id="customerName" placeholder="客戶姓名（存酒必填）">
+<input id="customerPhone" placeholder="手機（存酒必填）">
 
   <!-- 結帳按鈕 -->
 <button id="posCheckout">結帳列印</button>
@@ -704,7 +706,7 @@ justify-content:center;align-items:center;">
 </body>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzMyrYiOTv3QOGh2GsZoUWtMLVq9JOWMTcM5rjLEnwSnfGw34aQeTmilR23b2Q5zeNW6w/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxK9jLWPk22jb-Mv1975LNMCGgyND0ewfk3ta_49YiYFwyYdXlXAIGTAIzcruUuoErOVw/exec";
 function formatNumber(num) { if (num === null || num === undefined || num === "") return "0"; let n = Number(num); if (isNaN(n)) return "0"; return n.toLocaleString('zh-TW'); }
 let POS_STORE = "";
 let posCart = [], currentTax = "應稅";
@@ -902,13 +904,13 @@ function renderProducts(category = null, search = "") {
 }
 
 // ===== 加入購物車（支援存酒） =====
-function addPOSItem(p, forceStore = false) {
+function addPOSItem(p, forceStore = false) { 
     let qtyAdd = 1;
     let pricePerUnit = Number(p["售價"]);
     let unit = p["單位"];
-    if (p["單位"] === "半斤") { qtyAdd = 0.5; pricePerUnit *= 2; unit = "斤"; }
+    if (unit === "半斤") { qtyAdd = 0.5; pricePerUnit *= 2; unit = "斤"; }
 
-    // 判斷購物車是否已有相同商品（存酒狀態不同也算不同）
+    // 查詢購物車內是否已存在相同商品（同存酒狀態）
     let exist = posCart.find(x => x.name === p["商品名稱"] && x.isStored === forceStore);
 
     if (exist) {
@@ -926,8 +928,33 @@ function addPOSItem(p, forceStore = false) {
             storeMonths: Number(p["存酒期限(月)"]) || 0
         });
     }
-
     renderCart();
+}
+
+// ===== 點商品時判斷要不要存酒 =====
+function setupProductCards() {
+    const box = document.getElementById("posProducts");
+    box.innerHTML = "";
+
+    products.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.innerHTML = `
+            <h4>${p["商品名稱"]}</h4>
+            <p>${p["售價"]} 元 / ${p["單位"]}</p>
+        `;
+
+        card.onclick = () => {
+            if (p["是否存酒"] === "Y") {
+                const storeIt = confirm(`【${p["商品名稱"]}】\n是否存酒？`);
+                addPOSItem(p, storeIt);
+            } else {
+                addPOSItem(p, false);
+            }
+        };
+
+        box.appendChild(card);
+    });
 }
 
 
