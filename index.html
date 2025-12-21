@@ -1396,6 +1396,9 @@ function calcDiscountedSubtotal(item) {
     discount: Number(document.getElementById("discount").value) || 0,
     cashReceive: Number(document.getElementById("cashInput").value) || 0,
     change: Number(document.getElementById("changeOut").innerText) || 0,
+    tableNumber: document.getElementById("tableNo")?.value || "",
+    peopleCou: : Number(docume.t.getElementById("peopleCount?.?.valu || |,
+
 
     items: posCart.map(it => {
 
@@ -1572,10 +1575,10 @@ if (document.getElementById("cashInput")) document.getElementById("cashInput").v
 if (document.getElementById("changeOut")) document.getElementById("changeOut").innerText = "0";
 
 // 清空桌號
-if (document.getElementById("tableNumber")) document.getElementById("tableNumber").value = "";
+document.getElementById("tableNo").value = "";
 
-// 重置人數回到0
-if (document.getElementById("orderCustomers")) document.getElementById("orderCustomers").value = "0";
+// 重置人數回到1（你原本是0，也可以改成1）
+document.getElementById("peopleCount").value = "1";
 
 // 更新低消顯示
 updateMinConsume();
