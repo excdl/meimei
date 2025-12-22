@@ -911,55 +911,45 @@ function renderProducts(category = null, search = "") {
                 <p>${p["售價"]} 元 / ${p["單位"]}</p>
             `;
 
+            // ⭐ 點擊商品判斷是否存酒
             card.onclick = () => {
+                console.log("DEBUG 商品：", p["商品名稱"], "| 是否存酒 =", p["是否存酒"], "| 全物件 =", p);
+
+                let storeIt = false;
                 if (p["是否存酒"] === "Y") {
-                    openStoreWineModal(p);
-                } else {
-                    addPOSItem(p, false);
+                    storeIt = confirm(`【${p["商品名稱"]}】\n是否要存酒？`);
                 }
+
+                addPOSItem(p, storeIt);
             };
 
             box.appendChild(card);
         });
 }
 
-/*********************************
- * ===== 存酒 Modal =====
- *********************************/
-function openStoreWineModal(product) {
-    pendingStoreProduct = product;
-    document.getElementById("storeWineTitle").innerText =
-        `【${product["商品名稱"]}】`;
-    document.getElementById("storeWineModal").style.display = "flex";
-}
-
-function confirmStoreWine(isStore) {
-    if (!pendingStoreProduct) return;
-    addPOSItem(pendingStoreProduct, isStore);
-    pendingStoreProduct = null;
-    document.getElementById("storeWineModal").style.display = "none";
-}
-
-/*********************************
- * ===== 加入購物車（支援存酒）=====
- *********************************/
+// ===== 加入購物車（支援存酒及自動計算到期日） =====
 function addPOSItem(p, forceStore = false) { 
     let qtyAdd = 1;
     let pricePerUnit = Number(p["售價"]);
     let unit = p["單位"];
-    if (unit === "半斤") { qtyAdd = 0.5; pricePerUnit *= 2; unit = "斤"; }
+    if (unit === "半斤") { 
+        qtyAdd = 0.5; 
+        pricePerUnit *= 2; 
+        unit = "斤"; 
+    }
 
+    // 計算存酒日期
+    const now = new Date();
+    let expireDate = null;
+    if (forceStore) {
+        const months = p["存酒期限(月)"] ? Number(p["存酒期限(月)"]) : 6;
+        const d = new Date(now);
+        d.setMonth(d.getMonth() + months);
+        expireDate = d.toLocaleDateString("zh-TW");
+    }
+
+    // 查詢購物車內是否已存在相同商品（同存酒狀態）
     let exist = posCart.find(x => x.name === p["商品名稱"] && x.isStored === forceStore);
-
-    // 計算存酒日期與到期日
-    let storeDate = new Date();
-    let expireDate = new Date(storeDate);
-
-    // 如果存酒期限不是數字或為空，就預設 6 個月
-    let storeMonths = Number(p["存酒期限(月)"]);
-    if (!storeMonths || isNaN(storeMonths)) storeMonths = 6;
-
-    expireDate.setMonth(expireDate.getMonth() + storeMonths);
 
     if (exist) {
         exist.quantity += qtyAdd;
@@ -970,12 +960,15 @@ function addPOSItem(p, forceStore = false) {
             price: pricePerUnit,
             unit: unit,
             discount: null,
+
+            // ⭐ 存酒相關
             isStored: forceStore,
-            storeMonths: storeMonths,
-            storeDate: formatDate(storeDate),
-            expireDate: formatDate(expireDate)
+            storeMonths: Number(p["存酒期限(月)"]) || 0,
+            storeDate: forceStore ? now.toLocaleDateString("zh-TW") : null,
+            expireDate: forceStore ? expireDate : null
         });
     }
+
     renderCart();
 }
 
