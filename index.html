@@ -904,6 +904,16 @@ function renderProducts(category = null, search = "") {
             return true;
         })
         .forEach(p => {
+            console.log(
+  "DEBUG 商品：",
+  p["商品名稱"],
+  "| 是否存酒 =",
+  JSON.stringify(p["是否存酒"]),
+  "| 全物件 =",
+  p
+);
+
+            
             const card = document.createElement("div");
             card.className = "product-card";
             card.innerHTML = `
