@@ -533,27 +533,34 @@ button{cursor:pointer;outline:none;transition:0.2s;}
   }
 
   .search-container button {
-    width: 100px;       /* 固定寬度 */
-    height: 35px;       /* 高度統一 */
-    font-size: 13px;
-    background-color: #27ae60;
+    width: 120px;               /* 固定寬度 */
+    height: 40px;               /* 固定高度 */
+    font-size: 14px;
+    background-color: #8e44ad;  /* 修改按鈕背景色，不同於底色 */
     border: none;
     cursor: pointer;
     color: white;
+    display: flex;              /* 讓文字與圖示置中 */
+    align-items: center;        /* 垂直置中 */
+    justify-content: center;    /* 水平置中 */
+    gap: 5px;                   /* 文字和圖示間距 */
+    border-radius: 5px;         /* 圓角按鈕 */
   }
 
   .search-container input {
-    flex: 1;            /* 撐滿剩餘空間 */
-    min-width: 120px;   /* 最小寬度，避免太窄 */
-    height: 35px;
+    flex: 1;                     /* 撐滿剩餘空間 */
+    min-width: 120px;            /* 最小寬度 */
+    height: 40px;
     padding: 0 10px;
-    font-size: 13px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
   }
 
   /* 小螢幕調整 */
   @media (max-width: 480px) {
     .search-container button, .search-container input {
-      flex: 1;          /* 都撐滿一行 */
+      flex: 1;                  /* 各佔一行 */
     }
   }
   
@@ -588,7 +595,9 @@ button{cursor:pointer;outline:none;transition:0.2s;}
 
     <!-- 查詢存酒按鈕 + 搜尋框，響應式 -->
 <div class="search-container">
-  <button id="checkWineBtn">查詢存酒</button>
+  <button id="checkWineBtn">
+    🍾 查詢存酒
+  </button>
   <input type="text" id="searchBox" placeholder="搜尋商品">
 </div>
       
