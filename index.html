@@ -524,7 +524,38 @@ button{cursor:pointer;outline:none;transition:0.2s;}
 #posCheckout.minAlert {
   background:#f39c12 !important;
 }
+.search-container {
+    display: flex;
+    flex-wrap: wrap; /* 小螢幕自動換行 */
+    gap: 5px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
 
+  .search-container button {
+    width: 100px;       /* 固定寬度 */
+    height: 35px;       /* 高度統一 */
+    font-size: 13px;
+    background-color: #27ae60;
+    border: none;
+    cursor: pointer;
+    color: white;
+  }
+
+  .search-container input {
+    flex: 1;            /* 撐滿剩餘空間 */
+    min-width: 120px;   /* 最小寬度，避免太窄 */
+    height: 35px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  /* 小螢幕調整 */
+  @media (max-width: 480px) {
+    .search-container button, .search-container input {
+      flex: 1;          /* 都撐滿一行 */
+    }
+  }
   
 </style>
 </head>
