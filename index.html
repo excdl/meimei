@@ -1463,56 +1463,96 @@ function calcDiscountedSubtotal(item) {
         paymentMethod: document.getElementById("posPayment").value,
         discount: Number(document.getElementById("discount").value) || 0,
         cashReceive: Number(document.getElementById("cashInput").value) || 0,
-        change: Number(document.getElementById("changeOut").innerText) || 0,
-
-        // 購物車商品
-        items: posCart.map(it => {
-            const discountedSubtotal = calcDiscountedSubtotal(it);
-
-            let promoText = "";
-            if (it.discount) {
-                promoText = it.discount.type === "折扣"
-                    ? formatDiscountRate(it.discount.rate)
-                    : it.discount.type;
-            }
-
-            return {
-                category: products.find(p => p["商品名稱"] === it.name)?.["類別"] || "",
-                name: it.name,
-                quantity: it.quantity,
-                price: it.price,
-                subtotal: discountedSubtotal,
-                promo: promoText
-            };
-        })
+        change: 0, // 先給 0，稍後更新
     };
 
-    // ===== 自動產生存酒資料 =====
-    function addMonths(date, months){
+    // ===== 計算折扣後小計 =====
+    payload.items = posCart.map(it => {
+        const discountedSubtotal = calcDiscountedSubtotal(it);
+
+        let promoText = "";
+        if (it.discount) {
+            promoText = it.discount.type === "折扣"
+                ? formatDiscountRate(it.discount.rate)
+                : it.discount.type;
+        }
+
+        return {
+            category: products.find(p => p["商品名稱"] === it.name)?.["類別"] || "",
+            name: it.name,
+            quantity: it.quantity,
+            price: it.price,
+            subtotal: discountedSubtotal,
+            promo: promoText
+        };
+    });
+
+    // ===== 計算找零 =====
+    const actualAmount = payload.totalAmount - payload.discount;
+    payload.change = payload.paymentMethod === "現金"
+        ? Math.max(payload.cashReceive - actualAmount, 0)
+        : 0;
+
+    // ===== 存酒資料 =====
+    function addMonths(date, months) {
         const d = new Date(date);
         d.setMonth(d.getMonth() + months);
         return d.toLocaleDateString("zh-TW");
     }
 
     const storedItems = posCart
-    .filter(it => it.isStored)
-    .map(it => ({
-        customerName: document.getElementById("customerName").value,
-        customerPhone: document.getElementById("customerPhone").value,
-        storeCode: storeCode,
-        storeName: storeName,
-        productName: it.name,
-        totalQty: it.quantity,
-        remainQty: it.quantity,
-        unit: it.unit,
-        storeDate: it.storeDate,
-        expireDate: it.expireDate
-    }));
+        .filter(it => it.isStored)
+        .map(it => {
+            const product = products.find(p => p["商品名稱"] === it.name);
+            const nowDate = new Date();
+            return {
+                customerName: document.getElementById("customerName").value,
+                customerPhone: document.getElementById("customerPhone").value,
+                storeCode: payload.storeCode,
+                storeName: payload.storeName,
+                productName: it.name,
+                totalQty: it.quantity,
+                remainQty: it.quantity,
+                unit: it.unit,
+                storeDate: nowDate.toLocaleDateString("zh-TW"),
+                expireDate: product && product["存酒期限(月)"] 
+                    ? addMonths(nowDate, Number(product["存酒期限(月)"]))
+                    : addMonths(nowDate, 6)
+            };
+        });
 
-fetch("/api", {
-    method: "POST",
-    body: JSON.stringify({ action: "checkout", items: posCart, storedItems, ... })
-});
+    // ===== 傳送至後端 =====
+    try {
+        const res = await fetch("/api", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "checkout", ...payload, storedItems })
+        });
+        const result = await res.json();
+        console.log("結帳結果:", result);
+
+        if (result.status === "success") {
+            // ===== Step 1：清空購物車 =====
+            posCart = [];
+            renderCart();
+
+            // ===== Step 2：清空表單欄位 =====
+            if (document.getElementById("discount")) document.getElementById("discount").value = "0";
+            if (document.getElementById("cashInput")) document.getElementById("cashInput").value = "";
+            if (document.getElementById("changeOut")) document.getElementById("changeOut").innerText = "0";
+            document.getElementById("tableNumber").value = "";
+            document.getElementById("peopleCount").value = "1";
+            document.getElementById("customerName").value = "";
+            document.getElementById("customerPhone").value = "";
+            updateMinConsume();
+        }
+
+    } catch (err) {
+        console.error("結帳失敗:", err);
+        alert("結帳失敗：" + err.message);
+    }
+}
+
 
 
 // ===== 印表機狀態檢查（不影響結帳）=====
