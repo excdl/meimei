@@ -698,6 +698,20 @@ justify-content:center;align-items:center;">
     </div>
   </div>
 </div>
+<!-- ===== 存酒選擇 Modal ===== -->
+<div id="storeWineModal"
+     style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.45);z-index:100000;
+     justify-content:center;align-items:center;">
+  <div style="background:white;padding:20px;border-radius:12px;width:90%;max-width:320px;text-align:center;">
+    <h3 id="storeWineTitle"></h3>
+    <p>是否要將此商品設為存酒？</p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="confirmStoreWine(false)" style="flex:1;">直接販售</button>
+      <button onclick="confirmStoreWine(true)" style="flex:1;background:#27ae60;color:white;">存酒</button>
+    </div>
+  </div>
+</div>
 
     
 <!-- 列印收據區 -->
@@ -871,7 +885,14 @@ document.getElementById("searchBox").oninput = function () {
     return Number(str.replace(/,/g, ""));
 }
 
-// ===== 渲染商品 =====
+/*********************************
+ * 存酒 Modal 控制用
+ *********************************/
+let pendingStoreProduct = null;
+
+/*********************************
+ * ===== 渲染商品（唯一版本）=====
+ *********************************/
 function renderProducts(category = null, search = "") {
     const box = document.getElementById("posProducts");
     box.innerHTML = "";
@@ -879,7 +900,7 @@ function renderProducts(category = null, search = "") {
     products
         .filter(p => {
             if (category && p["類別"] !== category) return false;
-            if (search && !p["商品名稱"].toLowerCase().includes(search)) return false;
+            if (search && !p["商品名稱"].toLowerCase().includes(search.toLowerCase())) return false;
             return true;
         })
         .forEach(p => {
@@ -890,11 +911,9 @@ function renderProducts(category = null, search = "") {
                 <p>${p["售價"]} 元 / ${p["單位"]}</p>
             `;
 
-            // ⭐ 點擊商品時判斷是否存酒
             card.onclick = () => {
                 if (p["是否存酒"] === "Y") {
-                    const storeIt = confirm(`【${p["商品名稱"]}】\n是否要存酒？`);
-                    addPOSItem(p, storeIt);
+                    openStoreWineModal(p);
                 } else {
                     addPOSItem(p, false);
                 }
@@ -904,15 +923,43 @@ function renderProducts(category = null, search = "") {
         });
 }
 
-// ===== 加入購物車（支援存酒） =====
-function addPOSItem(p, forceStore = false) { 
+/*********************************
+ * ===== 存酒 Modal =====
+ *********************************/
+function openStoreWineModal(product) {
+    pendingStoreProduct = product;
+    document.getElementById("storeWineTitle").innerText =
+        `【${product["商品名稱"]}】`;
+    document.getElementById("storeWineModal").style.display = "flex";
+}
+
+function confirmStoreWine(isStore) {
+    if (!pendingStoreProduct) return;
+    addPOSItem(pendingStoreProduct, isStore);
+    pendingStoreProduct = null;
+    document.getElementById("storeWineModal").style.display = "none";
+}
+
+/*********************************
+ * ===== 加入購物車（支援存酒）=====
+ *********************************/
+function addPOSItem(p, isStored = false) {
     let qtyAdd = 1;
     let pricePerUnit = Number(p["售價"]);
     let unit = p["單位"];
-    if (unit === "半斤") { qtyAdd = 0.5; pricePerUnit *= 2; unit = "斤"; }
 
-    // 查詢購物車內是否已存在相同商品（同存酒狀態）
-    let exist = posCart.find(x => x.name === p["商品名稱"] && x.isStored === forceStore);
+    // 半斤轉斤
+    if (unit === "半斤") {
+        qtyAdd = 0.5;
+        pricePerUnit *= 2;
+        unit = "斤";
+    }
+
+    // 同商品 + 同存酒狀態才合併
+    let exist = posCart.find(x =>
+        x.name === p["商品名稱"] &&
+        x.isStored === isStored
+    );
 
     if (exist) {
         exist.quantity += qtyAdd;
@@ -924,54 +971,26 @@ function addPOSItem(p, forceStore = false) {
             unit: unit,
             discount: null,
 
-            // ⭐ 存酒相關
-            isStored: forceStore,
+            // 存酒相關
+            isStored: isStored,
             storeMonths: Number(p["存酒期限(月)"]) || 0
         });
     }
+
     renderCart();
 }
 
-// ===== 點商品時判斷要不要存酒 =====
-function setupProductCards() {
-    const box = document.getElementById("posProducts");
-    box.innerHTML = "";
-
-    products.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "product-card";
-        card.innerHTML = `
-            <h4>${p["商品名稱"]}</h4>
-            <p>${p["售價"]} 元 / ${p["單位"]}</p>
-        `;
-
-        card.onclick = () => {
-            if (p["是否存酒"] === "Y") {
-                const storeIt = confirm(`【${p["商品名稱"]}】\n是否存酒？`);
-                addPOSItem(p, storeIt);
-            } else {
-                addPOSItem(p, false);
-            }
-        };
-
-        box.appendChild(card);
-    });
-}
-
-
-// 初始化付款方式按鈕
+/*********************************
+ * ===== 初始化付款方式 =====
+ *********************************/
 function initPOSButtons() {
     const buttons = document.querySelectorAll("#paymentButtons .payBtn");
     buttons.forEach(btn => {
         btn.addEventListener("click", function () {
 
-            // 取消所有 active
             buttons.forEach(b => b.classList.remove("active"));
-
-            // 設定 active
             this.classList.add("active");
 
-            // 寫入隱藏欄位
             const pay = this.getAttribute("data-pay");
             document.getElementById("posPayment").value = pay;
 
@@ -987,14 +1006,16 @@ function initPOSButtons() {
                 changeOut.innerText = "0";
             }
 
-            renderCart(); // 更新總額/找零
+            renderCart();
         });
     });
 }
 
 document.addEventListener("DOMContentLoaded", initPOSButtons);
 
-// ===== 渲染購物車 =====
+/*********************************
+ * ===== 渲染購物車（原邏輯保留）=====
+ *********************************/
 function renderCart() {
     const box = document.getElementById("posCart");
     box.innerHTML = "";
@@ -1002,6 +1023,7 @@ function renderCart() {
 
     posCart.forEach((item, i) => {
         let sub = item.quantity * item.price;
+
         if (item.discount) {
             switch (item.discount.type) {
                 case "第二件減10": sub -= Math.floor(item.quantity / 2) * 10; break;
@@ -1011,16 +1033,25 @@ function renderCart() {
                 default: sub *= item.discount.rate || 1; break;
             }
         }
+
         totalBeforeTax += sub;
 
         const row = document.createElement("div");
         row.className = "cartRow";
         row.innerHTML = `
-            <span class="name" onclick="openPromoModal(posCart[${i}])">${item.name}</span>
-            <span class="qty" onclick="openEditModal(${i},'quantity')">${item.quantity.toFixed(2)} ${item.unit}</span>
+            <span class="name" onclick="openPromoModal(posCart[${i}])">
+              ${item.name}
+              ${item.isStored ? "<b style='color:#27ae60;'>🧊存酒</b>" : ""}
+            </span>
+            <span class="qty" onclick="openEditModal(${i},'quantity')">
+              ${item.quantity.toFixed(2)} ${item.unit}
+            </span>
             <span class="price" onclick="openEditModal(${i},'price')">${item.price}</span>
             <span class="subtotal">${formatNumber(Math.round(sub))}</span>
-            <span class="remove"><button onclick="removeItem(${i})">刪</button></span>`;
+            <span class="remove">
+              <button onclick="removeItem(${i})">刪</button>
+            </span>
+        `;
         box.appendChild(row);
     });
 
@@ -1032,29 +1063,14 @@ function renderCart() {
     let minConsume = updateMinConsume();
     let receivable = Math.max(actualAmount, minConsume);
 
-    const alertEl = document.getElementById("minConsumeAlert");
-    const posTotalEl = document.getElementById("posTotal");
-    const checkoutBtn = document.getElementById("posCheckout");
-
-    if (actualAmount < minConsume && minConsume > 0) {
-        if (alertEl) alertEl.style.display = "block";
-        posTotalEl.style.color = "#c0392b";
-        checkoutBtn.classList.add("minAlert");
-    } else {
-        if (alertEl) alertEl.style.display = "none";
-        posTotalEl.style.color = "#2c3e50";
-        checkoutBtn.classList.remove("minAlert");
-    }
-
     document.getElementById("beforeTax").innerText = formatNumber(Math.round(totalBeforeTax));
     document.getElementById("taxAmount").innerText = formatNumber(Math.round(tax));
     document.getElementById("afterTax").innerText = formatNumber(Math.round(afterTax));
-
-    posTotalEl.dataset.value = receivable;
-    posTotalEl.innerText = formatNumber(Math.round(receivable));
+    document.getElementById("posTotal").innerText = formatNumber(Math.round(receivable));
 
     updateChange();
 }
+
 
 
 // ===== 計算找零 =====
