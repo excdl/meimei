@@ -552,9 +552,17 @@ button{cursor:pointer;outline:none;transition:0.2s;}
     <div id="storeInfo" style="font-size:14px; font-weight:bold; margin-bottom:10px;"></div>
     <div id="loginTime" style="font-size:12px; color: white; margin-bottom: 10px;"></div>
     <button id="logoutBtn" style="margin-bottom:10px; font-size:13px; background-color:#d35400; border:none; padding:5px 10px; cursor:pointer; color:white;">
-    登出
-</button>
-<input type="text" id="searchBox" placeholder="搜尋商品">
+      登出
+    </button>
+
+    <!-- 查詢存酒按鈕 + 搜尋框同一行 -->
+    <div style="display:flex; gap:5px; margin-bottom:10px;">
+      <button id="checkWineBtn" style="font-size:13px; background-color:#27ae60; border:none; padding:5px 10px; cursor:pointer; color:white;">
+        查詢存酒
+      </button>
+      <input type="text" id="searchBox" placeholder="搜尋商品" style="flex:1; padding:5px;">
+    </div>
+      
     <h3>分類</h3>
   </div>
   <div id="posProducts"></div>
@@ -1142,7 +1150,13 @@ function updateChange() {
     document.getElementById("changeOut").innerText = formatNumber(change);
 }
 
+// 取得查詢存酒按鈕
+  const checkWineBtn = document.getElementById('checkWineBtn');
 
+  // 點擊事件：開啟新視窗
+  checkWineBtn.addEventListener('click', () => {
+    window.open('https://excdl.github.io/wine/', '_blank');
+  });
 
 // ===== 千分位格式化 =====
 function formatNumber(num) {
