@@ -1038,7 +1038,6 @@ function renderCart() {
 
     posCart.forEach((item, i) => {
         let sub = item.quantity * item.price;
-
         if (item.discount) {
             switch (item.discount.type) {
                 case "第二件減10": sub -= Math.floor(item.quantity / 2) * 10; break;
@@ -1048,9 +1047,7 @@ function renderCart() {
                 default: sub *= item.discount.rate || 1; break;
             }
         }
-
         totalBeforeTax += sub;
-
         const row = document.createElement("div");
         row.className = "cartRow";
         row.innerHTML = `
@@ -1069,7 +1066,7 @@ function renderCart() {
         `;
         box.appendChild(row);
     });
-
+     
     let tax = currentTax === "應稅" ? Math.round(totalBeforeTax * 0.05) : 0;
     let afterTax = totalBeforeTax + tax;
 
@@ -1078,23 +1075,26 @@ function renderCart() {
     let minConsume = updateMinConsume();
     let receivable = Math.max(actualAmount, minConsume);
 
-    document.getElementById("beforeTax").innerText = formatNumber(Math.round(totalBeforeTax));
-    document.getElementById("taxAmount").innerText = formatNumber(Math.round(tax));
-    document.getElementById("afterTax").innerText = formatNumber(Math.round(afterTax));
-    document.getElementById("posTotal").innerText = formatNumber(Math.round(receivable));
+    const posTotalEl = document.getElementById("posTotal");
+    posTotalEl.dataset.value = receivable; // ⚠ 要放 dataset.value
+    posTotalEl.innerText = formatNumber(Math.round(receivable));
 
-    updateChange();
+    updateChange(); // ✔ 改完找零算法之後再呼叫
 }
 
-
-
-// ===== 計算找零 =====
 function updateChange() {
     const cash = Number(document.getElementById("cashInput").value) || 0;
-    const total = Number(document.getElementById("posTotal").dataset.value) || 0;
-    const change = cash - total;
-    document.getElementById("changeOut").textContent = formatNumber(Math.max(change, 0));
+    const totalEl = document.getElementById("posTotal");
+    const receivable = Number(totalEl.dataset.value || totalEl.innerText.replace(/,/g, "")) || 0;
+    const paymentMethod = document.getElementById("posPayment").value;
+
+    const change = paymentMethod === "現金"
+        ? Math.max(cash - receivable, 0)
+        : 0;
+
+    document.getElementById("changeOut").innerText = formatNumber(change);
 }
+
 
 // ===== 千分位格式化 =====
 function formatNumber(num) {
