@@ -1549,7 +1549,7 @@ function calcDiscountedSubtotal(item) {
     };
 
     // ===== 自動產生存酒資料 =====
-    function addMonths(date, months){
+      function addMonths(date, months) {
         const d = new Date(date);
         d.setMonth(d.getMonth() + months);
         return d.toLocaleDateString("zh-TW");
@@ -1557,21 +1557,24 @@ function calcDiscountedSubtotal(item) {
 
     const storedItems = posCart
         .filter(it => it.isStored)
-        .map(it => ({
-            storeCode: POS_STORE,
-            storeName: document.getElementById("storeInfo").innerText.split("（")[0],
-
-            customerName: document.getElementById("customerName")?.value || "",
-            customerPhone: document.getElementById("customerPhone")?.value || "",
-
-            productName: it.name,
-            totalQty: it.quantity,
-            remainQty: it.quantity,
-            unit: it.unit,
-
-            storeDate: now.toLocaleDateString("zh-TW"),
-            expireDate: addMonths(now, it.storeMonths)
-        }));
+        .map(it => {
+            const product = products.find(p => p["商品名稱"] === it.name);
+            const nowDate = new Date();
+            return {
+                customerName: document.getElementById("customerName").value,
+                customerPhone: document.getElementById("customerPhone").value,
+                storeCode: payload.storeCode,
+                storeName: payload.storeName,
+                productName: it.name,
+                totalQty: it.quantity,
+                remainQty: it.quantity,
+                unit: it.unit,
+                storeDate: nowDate.toLocaleDateString("zh-TW"),
+                expireDate: product && product["存酒期限(月)"] 
+                    ? addMonths(nowDate, Number(product["存酒期限(月)"]))
+                    : addMonths(nowDate, 6)
+            };
+        });
 
     payload.storedItems = storedItems;
 
