@@ -720,7 +720,7 @@ justify-content:center;align-items:center;">
 </body>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwg4jxQv6Y3Zko0w7c4ZvOxuhGn7PXRd1toLCLbpG5hKsUlysbIbzHpg_KQQzcNLzUo5A/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxjzXMHb4tHY6XKvnLWutwdqPn_C4tOUutcoh_czYQLQPdCyhhRHIszYkbhHZMeNrKS0w/exec";
 function formatNumber(num) { if (num === null || num === undefined || num === "") return "0"; let n = Number(num); if (isNaN(n)) return "0"; return n.toLocaleString('zh-TW'); }
 let POS_STORE = "";
 let posCart = [], currentTax = "應稅";
@@ -953,23 +953,28 @@ function confirmStoreWine(isStore) {
 /*********************************
  * ===== 加入購物車（支援存酒）=====
  *********************************/
-function addPOSItem(p, isStored = false) {
+function addPOSItem(p, forceStore = false) { 
     let qtyAdd = 1;
     let pricePerUnit = Number(p["售價"]);
     let unit = p["單位"];
-
-    // 半斤轉斤
-    if (unit === "半斤") {
-        qtyAdd = 0.5;
-        pricePerUnit *= 2;
-        unit = "斤";
+    if (unit === "半斤") { 
+        qtyAdd = 0.5; 
+        pricePerUnit *= 2; 
+        unit = "斤"; 
     }
 
-    // 同商品 + 同存酒狀態才合併
-    let exist = posCart.find(x =>
-        x.name === p["商品名稱"] &&
-        x.isStored === isStored
-    );
+    // 計算存酒日期
+    const now = new Date();
+    let expireDate = null;
+    if (forceStore) {
+        const months = p["存酒期限(月)"] ? Number(p["存酒期限(月)"]) : 6;
+        const d = new Date(now);
+        d.setMonth(d.getMonth() + months);
+        expireDate = d.toLocaleDateString("zh-TW");
+    }
+
+    // 查詢購物車內是否已存在相同商品（同存酒狀態）
+    let exist = posCart.find(x => x.name === p["商品名稱"] && x.isStored === forceStore);
 
     if (exist) {
         exist.quantity += qtyAdd;
@@ -981,14 +986,17 @@ function addPOSItem(p, isStored = false) {
             unit: unit,
             discount: null,
 
-            // 存酒相關
-            isStored: isStored,
-            storeMonths: Number(p["存酒期限(月)"]) || 0
+            // ⭐ 存酒相關
+            isStored: forceStore,
+            storeMonths: Number(p["存酒期限(月)"]) || 0,
+            storeDate: forceStore ? now.toLocaleDateString("zh-TW") : null,
+            expireDate: forceStore ? expireDate : null
         });
     }
 
     renderCart();
 }
+
 
 /*********************************
  * ===== 初始化付款方式 =====
