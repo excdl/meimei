@@ -911,22 +911,38 @@ function renderProducts(category = null, search = "") {
                 <p>${p["售價"]} 元 / ${p["單位"]}</p>
             `;
 
-            // ⭐ 點擊商品判斷是否存酒
             card.onclick = () => {
-                console.log("DEBUG 商品：", p["商品名稱"], "| 是否存酒 =", p["是否存酒"], "| 全物件 =", p);
-
-                let storeIt = false;
                 if (p["是否存酒"] === "Y") {
-                    storeIt = confirm(`【${p["商品名稱"]}】\n是否要存酒？`);
+                    openStoreWineModal(p);
+                } else {
+                    addPOSItem(p, false);
                 }
-
-                addPOSItem(p, storeIt);
             };
 
             box.appendChild(card);
         });
 }
 
+/*********************************
+ * ===== 存酒 Modal =====
+ *********************************/
+function openStoreWineModal(product) {
+    pendingStoreProduct = product;
+    document.getElementById("storeWineTitle").innerText =
+        `【${product["商品名稱"]}】`;
+    document.getElementById("storeWineModal").style.display = "flex";
+}
+
+function confirmStoreWine(isStore) {
+    if (!pendingStoreProduct) return;
+    addPOSItem(pendingStoreProduct, isStore);
+    pendingStoreProduct = null;
+    document.getElementById("storeWineModal").style.display = "none";
+}
+
+/*********************************
+ * ===== 加入購物車（支援存酒）=====
+ *********************************/
 // ===== 加入購物車（支援存酒及自動計算到期日） =====
 function addPOSItem(p, forceStore = false) { 
     let qtyAdd = 1;
@@ -1064,6 +1080,7 @@ function renderCart() {
 }
 
 
+ 
 
 // ===== 計算找零 =====
 function updateChange() {
