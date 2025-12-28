@@ -1006,11 +1006,9 @@ function addPOSItem(p, forceStore = false) {
     let qtyAdd = 1;
     let pricePerUnit = Number(p["售價"]);
     let unit = p["單位"];
-
-    // 🔹 將半斤商品改成整數斤
     if (unit === "半斤") { 
-        qtyAdd = 1; // 改為 1 斤
-        pricePerUnit *= 2; // 售價乘 2
+        qtyAdd = 0.5; 
+        pricePerUnit *= 2; 
         unit = "斤"; 
     }
 
@@ -1028,16 +1026,16 @@ function addPOSItem(p, forceStore = false) {
     let exist = posCart.find(x => x.name === p["商品名稱"] && x.isStored === forceStore);
 
     if (exist) {
-        exist.quantity += qtyAdd; // 整數累加
+        exist.quantity += qtyAdd;
     } else {
         posCart.push({
             name: p["商品名稱"],
-            quantity: qtyAdd, // 整數
+            quantity: qtyAdd,
             price: pricePerUnit,
             unit: unit,
             discount: null,
 
-            // 存酒相關
+            // ⭐ 存酒相關
             isStored: forceStore,
             storeMonths: Number(p["存酒期限(月)"]) || 0,
             storeDate: forceStore ? now.toLocaleDateString("zh-TW") : null,
@@ -1120,21 +1118,24 @@ function renderCart() {
 
         totalBeforeTax += sub;
 
+        const row = document.createElement("div");
+        row.className = "cartRow";
         row.innerHTML = `
-    <span class="name" onclick="openPromoModal(posCart[${i}])">
-      ${item.name}
-      ${item.isStored ? "<b style='color:#27ae60;'>🧊存酒</b>" : ""}
-    </span>
-    <span class="qty" onclick="openEditModal(${i},'quantity')">
-      ${parseInt(item.quantity)} ${item.unit}
-    </span>
-    <span class="price" onclick="openEditModal(${i},'price')">${item.price}</span>
-    <span class="subtotal">${formatNumber(Math.round(sub))}</span>
-    <span class="remove">
-      <button onclick="removeItem(${i})">刪</button>
-    </span>
-`;
-
+            <span class="name" onclick="openPromoModal(posCart[${i}])">
+              ${item.name}
+              ${item.isStored ? "<b style='color:#27ae60;'>🧊存酒</b>" : ""}
+            </span>
+            <span class="qty" onclick="openEditModal(${i},'quantity')">
+              ${item.quantity.toFixed(0)} ${item.unit}
+            </span>
+            <span class="price" onclick="openEditModal(${i},'price')">${item.price}</span>
+            <span class="subtotal">${formatNumber(Math.round(sub))}</span>
+            <span class="remove">
+              <button onclick="removeItem(${i})">刪</button>
+            </span>
+        `;
+        box.appendChild(row);
+    });
 
     // ===== 計算稅額 =====
     let beforeTax = Math.round(totalBeforeTax);
@@ -1836,6 +1837,8 @@ if (typeof renderCart === "function") renderCart();
 
 </body>
 </html>
+
+
 
 
 
