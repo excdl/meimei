@@ -1570,7 +1570,7 @@ function calcDiscountedSubtotal(item) {
         storeName: document.getElementById("storeInfo").innerText.split("（")[0],
         storeCode: POS_STORE,
 
-        tableNumber: document.getElementById("tableNumber")?.value || "",
+       const tableInput = document.getElementById("tableNo")?.value.trim();
         peopleCount: Number(document.getElementById("peopleCount")?.value) || 0,
 
         taxStatus: currentTax,
