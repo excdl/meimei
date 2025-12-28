@@ -1006,9 +1006,10 @@ function addPOSItem(p, forceStore = false) {
     let qtyAdd = 1;
     let pricePerUnit = Number(p["售價"]);
     let unit = p["單位"];
+    // 🔹 將半斤商品改成整數斤
     if (unit === "半斤") { 
-        qtyAdd = 0.5; 
-        pricePerUnit *= 2; 
+        qtyAdd = 1; // 改為 1 斤
+        pricePerUnit *= 2; // 售價乘 2
         unit = "斤"; 
     }
 
