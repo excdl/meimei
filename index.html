@@ -1120,24 +1120,21 @@ function renderCart() {
 
         totalBeforeTax += sub;
 
-        const row = document.createElement("div");
-        row.className = "cartRow";
         row.innerHTML = `
-            <span class="name" onclick="openPromoModal(posCart[${i}])">
-              ${item.name}
-              ${item.isStored ? "<b style='color:#27ae60;'>🧊存酒</b>" : ""}
-            </span>
-            <span class="qty" onclick="openEditModal(${i},'quantity')">
-              ${item.quantity.toFixed(2)} ${item.unit}
-            </span>
-            <span class="price" onclick="openEditModal(${i},'price')">${item.price}</span>
-            <span class="subtotal">${formatNumber(Math.round(sub))}</span>
-            <span class="remove">
-              <button onclick="removeItem(${i})">刪</button>
-            </span>
-        `;
-        box.appendChild(row);
-    });
+    <span class="name" onclick="openPromoModal(posCart[${i}])">
+      ${item.name}
+      ${item.isStored ? "<b style='color:#27ae60;'>🧊存酒</b>" : ""}
+    </span>
+    <span class="qty" onclick="openEditModal(${i},'quantity')">
+      ${parseInt(item.quantity)} ${item.unit}
+    </span>
+    <span class="price" onclick="openEditModal(${i},'price')">${item.price}</span>
+    <span class="subtotal">${formatNumber(Math.round(sub))}</span>
+    <span class="remove">
+      <button onclick="removeItem(${i})">刪</button>
+    </span>
+`;
+
 
     // ===== 計算稅額 =====
     let beforeTax = Math.round(totalBeforeTax);
