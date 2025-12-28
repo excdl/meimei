@@ -1006,6 +1006,7 @@ function addPOSItem(p, forceStore = false) {
     let qtyAdd = 1;
     let pricePerUnit = Number(p["售價"]);
     let unit = p["單位"];
+
     // 🔹 將半斤商品改成整數斤
     if (unit === "半斤") { 
         qtyAdd = 1; // 改為 1 斤
@@ -1027,16 +1028,16 @@ function addPOSItem(p, forceStore = false) {
     let exist = posCart.find(x => x.name === p["商品名稱"] && x.isStored === forceStore);
 
     if (exist) {
-        exist.quantity += qtyAdd;
+        exist.quantity += qtyAdd; // 整數累加
     } else {
         posCart.push({
             name: p["商品名稱"],
-            quantity: qtyAdd,
+            quantity: qtyAdd, // 整數
             price: pricePerUnit,
             unit: unit,
             discount: null,
 
-            // ⭐ 存酒相關
+            // 存酒相關
             isStored: forceStore,
             storeMonths: Number(p["存酒期限(月)"]) || 0,
             storeDate: forceStore ? now.toLocaleDateString("zh-TW") : null,
