@@ -611,16 +611,20 @@ button{cursor:pointer;outline:none;transition:0.2s;}
     </div>
     <div id="posCart"></div>
   
-    <!-- ===== 桌號 / 人數 / 低消 ===== -->
-   <div id="tableInfo" style="margin:8px 0;font-size:14px;">
+   <!-- ===== 桌號 / 人數 / 低消 ===== -->
+<div id="tableInfo" style="margin:8px 0;font-size:14px;">
   桌號：
   <input id="tableNo" style="width:60px;">
+  
   人數：
   <input id="peopleCount" type="number" min="1" value="1" style="width:60px;">
+  
   <span style="margin-left:10px;">
-    低消：<b><span id="minConsume">0</span></b> 元
+    低消：
+    <input id="minConsume" type="number" min="0" value="0" style="width:80px;"> 元
   </span>
-  </div>
+</div>
+
   
   <div id="taxContainer">
   <button id="taxIncluded" class="active" onclick="setTax('應稅')">應稅</button>
@@ -1016,7 +1020,7 @@ function addPOSItem(p, forceStore = false) {
     const now = new Date();
     let expireDate = null;
     if (forceStore) {
-        const months = p["存酒期限(月)"] ? Number(p["存酒期限(月)"]) : 6;
+        const months = p["存酒期限(月)"] ? Number(p["存酒期限(月)"]) : 2;
         const d = new Date(now);
         d.setMonth(d.getMonth() + months);
         expireDate = d.toLocaleDateString("zh-TW");
@@ -1142,11 +1146,16 @@ function renderCart() {
     let tax = currentTax === "應稅" ? Math.round(beforeTax * 0.05) : 0;
     let afterTax = beforeTax + tax;
 
-    // ===== 計算折扣/低消 =====
-    let discountValue = Number(document.getElementById("discount").value) || 0;
-    let actualAmount = afterTax - discountValue;
-    let minConsume = updateMinConsume();
-    let receivable = Math.max(actualAmount, minConsume);
+   // ===== 計算折扣/低消 =====
+let discountValue = Number(document.getElementById("discount").value) || 0;
+let actualAmount = afterTax - discountValue;
+
+// 直接從輸入框抓低消金額
+let minConsume = Number(document.getElementById("minConsume").value) || 0;
+
+// 實際應收金額，確保不低於低消
+let receivable = Math.max(actualAmount, minConsume);
+
 
     // ===== 更新 UI =====
     document.getElementById("beforeTax").innerText = formatNumber(beforeTax);
