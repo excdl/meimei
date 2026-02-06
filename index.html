@@ -624,7 +624,7 @@ button{cursor:pointer;outline:none;transition:0.2s;}
          min="0"
          value="400"
          style="width:80px;text-align:right;">
-  元
+  元/人
 </span>
   </div>
   
@@ -1151,7 +1151,7 @@ function renderCart() {
     // ===== 計算折扣/低消 =====
     let discountValue = Number(document.getElementById("discount").value) || 0;
     let actualAmount = afterTax - discountValue;
-    let minConsume = getMinConsume();
+    let minConsume = getMinConsumeTotal();
     let receivable = Math.max(actualAmount, minConsume);
 
     // ===== 更新 UI =====
@@ -1483,9 +1483,10 @@ function kpConfirm() {
     document.getElementById("posKeypadModal").style.display = "none";
 }
 let allowMinConsumeCheckout = false;
-
-function getMinConsume() {
-  return Number(document.getElementById("minConsumeInput")?.value) || 0;
+function getMinConsumeTotal() {
+  const people = Number(document.getElementById("peopleCount")?.value) || 0;
+  const perMin = Number(document.getElementById("minConsumeInput")?.value) || 0;
+  return people * perMin;
 }
 
 // 低消變動時，立即重算
@@ -1522,7 +1523,13 @@ function setTax(t) {
   // 頁面載入時預設免稅
 window.addEventListener("DOMContentLoaded", () => {
     setTax("免稅");
-});
+
+    document.getElementById("peopleCount")
+      ?.addEventListener("input", renderCart);
+
+    document.getElementById("minConsumeInput")
+      ?.addEventListener("input", renderCart);
+});;
 
 
 function formatDiscountRate(rate) {
@@ -1664,7 +1671,7 @@ document.getElementById("posCheckout").onclick = async function () {
     }
 
     let actual = parseNumber(document.getElementById("afterTax").innerText) - (Number(document.getElementById("discount").value)||0);
-    let min = getMinConsume();
+    let min = getMinConsumeTotal();
     if(actual < min && !allowMinConsumeCheckout){
         showMinConsumeConfirm(actual,min);
         return;
