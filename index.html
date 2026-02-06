@@ -618,8 +618,14 @@ button{cursor:pointer;outline:none;transition:0.2s;}
   人數：
   <input id="peopleCount" type="number" min="1" value="1" style="width:60px;">
   <span style="margin-left:10px;">
-    低消：<b><span id="minConsume">0</span></b> 元
-  </span>
+  低消：
+  <input id="minConsumeInput"
+         type="number"
+         min="0"
+         value="400"
+         style="width:80px;text-align:right;">
+  元
+</span>
   </div>
   
   <div id="taxContainer">
@@ -1145,7 +1151,7 @@ function renderCart() {
     // ===== 計算折扣/低消 =====
     let discountValue = Number(document.getElementById("discount").value) || 0;
     let actualAmount = afterTax - discountValue;
-    let minConsume = updateMinConsume();
+    let minConsume = getMinConsume();
     let receivable = Math.max(actualAmount, minConsume);
 
     // ===== 更新 UI =====
@@ -1476,20 +1482,17 @@ function kpConfirm() {
 
     document.getElementById("posKeypadModal").style.display = "none";
 }
-const MIN_PER_PERSON = 400;
 let allowMinConsumeCheckout = false;
 
-function updateMinConsume(){
-  const p = Number(document.getElementById("peopleCount").value)||0;
-  const m = p * MIN_PER_PERSON;
-  document.getElementById("minConsume").innerText = formatNumber(m);
-  return m;
+function getMinConsume() {
+  return Number(document.getElementById("minConsumeInput")?.value) || 0;
 }
 
-document.getElementById("peopleCount").addEventListener("input",()=>{
-  updateMinConsume();
+// 低消變動時，立即重算
+document.getElementById("minConsumeInput").addEventListener("input", () => {
   renderCart();
 });
+
 
 function showMinConsumeConfirm(actual,min){
   document.getElementById("minConsumeConfirmText").innerHTML =
@@ -1661,7 +1664,7 @@ document.getElementById("posCheckout").onclick = async function () {
     }
 
     let actual = parseNumber(document.getElementById("afterTax").innerText) - (Number(document.getElementById("discount").value)||0);
-    let min = updateMinConsume();
+    let min = getMinConsume();
     if(actual < min && !allowMinConsumeCheckout){
         showMinConsumeConfirm(actual,min);
         return;
@@ -1787,8 +1790,6 @@ document.getElementById("peopleCount").value = "1";
 if (document.getElementById("customerName")) document.getElementById("customerName").value = "";
 if (document.getElementById("customerPhone")) document.getElementById("customerPhone").value = "";
 
-// 更新低消顯示
-updateMinConsume();
 
 // 重新渲染購物車（清空後）
 if (typeof renderCart === "function") renderCart();
