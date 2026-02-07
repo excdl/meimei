@@ -1697,25 +1697,46 @@ async function printerIsReady() {
 
 // ===== 結帳：先入帳 → 再嘗試列印到自動抓取的印表機 ===== 
 document.getElementById("posCheckout").onclick = async function () {
-    // ===== 新增付款方式檢查 =====
-    const paymentMethod = document.getElementById("posPayment").value;
-    if (!paymentMethod) {
-        alert("請先選擇付款方式！");
-        return; // 停止結帳流程
-    }
+    const btn = this;
 
-    let actual = parseNumber(document.getElementById("afterTax").innerText) - (Number(document.getElementById("discount").value)||0);
-    let min = getMinConsumeTotal();
-    if(actual < min && !allowMinConsumeCheckout){
-        showMinConsumeConfirm(actual,min);
-        return;
-    }
-    allowMinConsumeCheckout=false;
+    // ⭐ 按下後立即顯示結帳中並禁止重複點擊
+    btn.disabled = true;
+    btn.textContent = "結帳中…";
 
-    if (posCart.length === 0) {
-        alert("購物車是空的。");
-        return;
+    try {
+        // ===== 新增付款方式檢查 =====
+        const paymentMethod = document.getElementById("posPayment").value;
+        if (!paymentMethod) {
+            alert("請先選擇付款方式！");
+            return;
+        }
+
+        let actual = parseNumber(document.getElementById("afterTax").innerText) - (Number(document.getElementById("discount").value)||0);
+        let min = getMinConsumeTotal();
+        if(actual < min && !allowMinConsumeCheckout){
+            showMinConsumeConfirm(actual,min);
+            return;
+        }
+        allowMinConsumeCheckout=false;
+
+        if (posCart.length === 0) {
+            alert("購物車是空的。");
+            return;
+        }
+
+        // ⭐ 這裡放你的原始結帳程式
+        await doCheckout(); // 假設你有一個 async 函式處理結帳
+
+    } catch (err) {
+        console.error(err);
+        alert("結帳發生錯誤！");
+    } finally {
+        // 無論成功或失敗，都恢復按鈕文字
+        btn.textContent = "結帳";
+        btn.disabled = false;
     }
+};
+
 
 
     // Step 1：結帳寫入試算表
