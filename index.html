@@ -1666,22 +1666,6 @@ function calcDiscountedSubtotal(item) {
         body: JSON.stringify(payload)
     });
 }
-  function loadSalesRepList() {
-    google.script.run.withSuccessHandler(function(list) {
-      const datalist = document.getElementById('salesRepList');
-      datalist.innerHTML = '';
-
-      list.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        datalist.appendChild(option);
-      });
-    }).getStoreList();
-  }
-
-  // 頁面載入時呼叫
-  window.onload = loadSalesRepList;
-
 
 
 // ===== 印表機狀態檢查（不影響結帳）=====
