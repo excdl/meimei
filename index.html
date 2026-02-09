@@ -1735,7 +1735,8 @@ document.getElementById("posCheckout").onclick = async function () {
 
     // Step 1：結帳寫入試算表
     await sendCheckoutToSheet();
-    updateTodaySales();
+    setTimeout(updateTodaySales, 0);
+
 
     // ===== 自動偵測紙張寬度設定 =====
     const PRINTER_PROFILE = {
@@ -1843,45 +1844,62 @@ document.getElementById("peopleCount").value = "0";
 if (document.getElementById("customerName")) document.getElementById("customerName").value = "";
 if (document.getElementById("customerPhone")) document.getElementById("customerPhone").value = "";
 // ⭐⭐ 重設業代為登入預設值
-await fetchSalesList();
+fetchSalesList(); // 不等
     
 // 重新渲染購物車（清空後）
 if (typeof renderCart === "function") renderCart();
 // ⭐⭐⭐ 結帳完成後，收款方式回到「現金」
 document.querySelector('#paymentButtons .payBtn[data-pay="現金"]')?.click();
 
-    // ===== Step 3：抓取 QZ Tray 所有印表機並列印 =====
-    if(window.qz){
-        try{
-            const printers = await qz.printers.find(); // 取得所有印表機
-            for(const printerName of printers){
-                let selectedSize="58";
-                if(/80/.test(printerName)) selectedSize="80";
-                const profile = PRINTER_PROFILE[selectedSize];
-                const receiptText = buildReceiptText(receiptPayload,profile);
-                const esc = [];
-                esc.push('\x1B\x40');         // 初始化
-                esc.push('\x1B\x61\x01');     // 置中
-                esc.push("生鮮 POS 小票\n");
-                esc.push('\x1B\x61\x00');     // 靠左
-                esc.push(receiptText+"\n");
-                esc.push('\x1B\x64\x02');     // 捲紙
-                esc.push('\x1B\x70\x00\x3C\xFF'); // 開錢櫃
-                esc.push('\x1D\x56\x42\x03'); // 切紙
-                const config = qz.configs.create(printerName);
-                await qz.print(config,[{type:'raw',format:'command',data:esc.join('')}]);
-                console.log(`列印完成: ${printerName}`);
-            }
-        }catch(err){
-            console.error("列印失敗",err);
-            alert("⚠️ 結帳成功，但列印失敗，請檢查印表機。");
-        }
-    } else if(window.webkit?.messageHandlers?.posPrint){
-        // iPad WebView 傳送小票給原生列印
-        window.webkit.messageHandlers.posPrint.postMessage(receiptPayload);
-    }
+      // ===== Step 3：背景列印（不阻塞結帳）=====
+if (window.qz) {
 
-    alert("結帳完成，已嘗試列印所有印表機");
+    // 🔥 列印丟到背景跑，結帳立刻完成
+    setTimeout(async () => {
+        try {
+            const printers = await qz.printers.find(); // 只抓一次
+
+            await Promise.all(
+                printers.map(async (printerName) => {
+                    let selectedSize = /80/.test(printerName) ? "80" : "58";
+                    const profile = PRINTER_PROFILE[selectedSize];
+
+                    const receiptText = buildReceiptText(receiptPayload, profile);
+
+                    const esc = [
+                        '\x1B\x40',             // 初始化
+                        '\x1B\x61\x01',         // 置中
+                        "生鮮 POS 小票\n",
+                        '\x1B\x61\x00',         // 靠左
+                        receiptText + "\n",
+                        '\x1B\x64\x02',         // 捲紙
+                        '\x1B\x70\x00\x3C\xFF', // 開錢櫃
+                        '\x1D\x56\x42\x03'      // 切紙
+                    ];
+
+                    const config = qz.configs.create(printerName);
+                    await qz.print(config, [
+                        { type: 'raw', format: 'command', data: esc.join('') }
+                    ]);
+
+                    console.log(`✅ 列印完成：${printerName}`);
+                })
+            );
+
+        } catch (err) {
+            console.error("列印失敗", err);
+            alert("⚠️ 結帳成功，但列印失敗，請檢查印表機");
+        }
+    }, 0);
+
+} else if (window.webkit?.messageHandlers?.posPrint) {
+    // iPad WebView 原生列印
+    window.webkit.messageHandlers.posPrint.postMessage(receiptPayload);
+}
+
+// ⭐ 結帳提示（不等列印）
+alert("結帳完成，已送出列印");
+
 
 checkoutBtn.innerText = originalText;
 checkoutBtn.disabled = false;
