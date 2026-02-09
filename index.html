@@ -1875,11 +1875,9 @@ if (typeof renderCart === "function") renderCart();
 
     alert("結帳完成，已嘗試列印所有印表機");
 
-finally {
-        // ⭐ 不論成功 / 失敗 / return，都會恢復按鈕
-        checkoutBtn.innerText = originalText;
-        checkoutBtn.disabled = false;
-    }
+checkoutBtn.innerText = originalText;
+checkoutBtn.disabled = false;
+
 };
 
   
