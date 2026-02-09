@@ -1697,15 +1697,16 @@ async function printerIsReady() {
 }
 
 // ===== 結帳：先入帳 → 再嘗試列印到自動抓取的印表機 ===== 
-const checkoutBtn = document.getElementById("posCheckout");
+document.getElementById("posCheckout").onclick = async function () {
 
-// 防止連點
-if (checkoutBtn.disabled) return;
+    const checkoutBtn = document.getElementById("posCheckout");
 
-checkoutBtn.disabled = true;
-const originalText = checkoutBtn.innerText;
-checkoutBtn.innerText = "結帳中...";
+    // 防止連續點擊
+    if (checkoutBtn.disabled) return;
 
+    const originalText = checkoutBtn.innerText;
+    checkoutBtn.disabled = true;
+    checkoutBtn.innerText = "結帳中...";
     // ===== 新增付款方式檢查 =====
     const paymentMethod = document.getElementById("posPayment").value;
     if (!paymentMethod) {
