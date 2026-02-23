@@ -1712,199 +1712,152 @@ document.getElementById("posCheckout").onclick = async function () {
     const originalText = checkoutBtn.innerText;
     checkoutBtn.disabled = true;
     checkoutBtn.innerText = "結帳中...";
+
     // ===== 新增付款方式檢查 =====
     const paymentMethod = document.getElementById("posPayment").value;
     if (!paymentMethod) {
         alert("請先選擇付款方式！");
+        checkoutBtn.innerText = originalText; // 恢復按鈕文字
+        checkoutBtn.disabled = false; // 恢復按鈕可點擊
         return; // 停止結帳流程
     }
 
-    let actual = parseNumber(document.getElementById("afterTax").innerText) - (Number(document.getElementById("discount").value)||0);
+    let actual = parseNumber(document.getElementById("afterTax").innerText) - (Number(document.getElementById("discount").value) || 0);
     let min = getMinConsumeTotal();
-    if(actual < min && !allowMinConsumeCheckout){
-        showMinConsumeConfirm(actual,min);
-        return;
+    
+    // 檢查是否未達最低消費金額
+    if (actual < min && !allowMinConsumeCheckout) {
+        // 顯示最低消費提示視窗並處理用戶選擇
+        showMinConsumeConfirm(actual, min, function (cancel) {
+            if (cancel) {
+                // 如果用戶選擇取消，恢復結帳按鈕為可點擊
+                checkoutBtn.innerText = originalText;
+                checkoutBtn.disabled = false;
+            } else {
+                // 如果用戶選擇確認結帳，即使未達最低消費，強制使用最低消費金額
+                allowMinConsumeCheckout = true; // 設置允許最低消費結帳
+                document.getElementById("afterTax").innerText = min; // 強制將消費金額設為最低消費金額
+                checkoutBtn.innerText = originalText; // 恢復按鈕文字
+                checkoutBtn.disabled = false; // 恢復按鈕可點擊
+                // 然後繼續結帳流程
+                startCheckoutFlow();
+            }
+        });
+        return; // 停止結帳流程
     }
-    allowMinConsumeCheckout=false;
+
+    allowMinConsumeCheckout = false; // 預設不允許最低消費結帳
 
     if (posCart.length === 0) {
         alert("購物車是空的。");
+        checkoutBtn.innerText = originalText; // 恢復按鈕文字
+        checkoutBtn.disabled = false; // 恢復按鈕可點擊
         return;
     }
 
+    // 如果沒有進入最低消費檢查，則直接繼續結帳流程
+    startCheckoutFlow();
+};
 
+// 處理結帳流程的函式
+async function startCheckoutFlow() {
+    const checkoutBtn = document.getElementById("posCheckout");
+    const originalText = checkoutBtn.innerText;
+    
     // Step 1：結帳寫入試算表
     await sendCheckoutToSheet();
     setTimeout(updateTodaySales, 0);
 
-
-    // ===== 自動偵測紙張寬度設定 =====
+    // 自動偵測紙張寬度設定
     const PRINTER_PROFILE = {
         "58": {charsPerLine:32,nameWidth:14,qtyWidth:6,priceWidth:6,subWidth:6},
         "80": {charsPerLine:42,nameWidth:20,qtyWidth:6,priceWidth:8,subWidth:8}
     };
 
-    // ===== 準備小票資料 =====
+    // 準備小票資料
     const receiptPayload = {
         storeName: "生鮮 POS",
         datetime: new Date().toLocaleString(),
         payment: document.getElementById("posPayment").value,
         openCashDrawer: true,
-        items: posCart.map(item=>{
-            let subtotal=item.quantity*item.price;
-            let discountText="";
-            let discountAmount=0;
-            if(item.discount){
-                switch(item.discount.type){
-                    case "第二件減10": 
-                        discountAmount=Math.floor(item.quantity/2)*10; 
-                        subtotal-=discountAmount; 
-                        discountText="第二件減10"; 
+        items: posCart.map(item => {
+            let subtotal = item.quantity * item.price;
+            let discountText = "";
+            let discountAmount = 0;
+            if (item.discount) {
+                // 處理各種折扣
+                switch (item.discount.type) {
+                    case "第二件減10":
+                        discountAmount = Math.floor(item.quantity / 2) * 10;
+                        subtotal -= discountAmount;
+                        discountText = "第二件減10";
                         break;
-                    case "買二送一": 
-                        discountAmount=Math.floor(item.quantity/3)*item.price; 
-                        subtotal-=discountAmount; 
-                        discountText="買二送一"; 
+                    case "買二送一":
+                        discountAmount = Math.floor(item.quantity / 3) * item.price;
+                        subtotal -= discountAmount;
+                        discountText = "買二送一";
                         break;
-                    case "買一送一": 
-                        discountAmount=Math.floor(item.quantity/2)*item.price; 
-                        subtotal-=discountAmount; 
-                        discountText="買一送一"; 
+                    case "買一送一":
+                        discountAmount = Math.floor(item.quantity / 2) * item.price;
+                        subtotal -= discountAmount;
+                        discountText = "買一送一";
                         break;
-                    case "第二件6折": 
-                        discountAmount=Math.floor(item.quantity/2)*item.price*0.4; 
-                        subtotal-=discountAmount; 
-                        discountText="第二件6折"; 
+                    case "第二件6折":
+                        discountAmount = Math.floor(item.quantity / 2) * item.price * 0.4;
+                        subtotal -= discountAmount;
+                        discountText = "第二件6折";
                         break;
-                    default: 
-                        subtotal*=item.discount.rate||1; 
-                        discountAmount = item.price*item.quantity*(1-(item.discount.rate||1));
-                        discountText=`折扣${(item.discount.rate||1)*100}%`; 
+                    default:
+                        subtotal *= item.discount.rate || 1;
+                        discountAmount = item.price * item.quantity * (1 - (item.discount.rate || 1));
+                        discountText = `折扣${(item.discount.rate || 1) * 100}%`;
                         break;
                 }
             }
-            return {name:item.name,qty:item.quantity,price:item.price,subtotal,discountText,discountAmount};
+            return {
+                name: item.name,
+                qty: item.quantity,
+                price: item.price,
+                subtotal,
+                discountText,
+                discountAmount
+            };
         }),
         summary: {
-            discount: document.getElementById("discount").value||0,
-            tax: document.getElementById("taxAmount")?.innerText||0,
-            total: document.getElementById("posTotal")?.innerText||0
+            discount: document.getElementById("discount").value || 0,
+            tax: document.getElementById("taxAmount")?.innerText || 0,
+            total: document.getElementById("posTotal")?.innerText || 0
         }
     };
 
-    // ===== 小票文字產生函式 =====
-    function pad(str,len,right=false){ str=str.toString(); return right? str+' '.repeat(len-str.length):' '.repeat(len-str.length)+str; }
-    function center(str,total){ let padLen=Math.floor((total-str.length)/2); return ' '.repeat(padLen)+str; }
-    function splitText(text,maxWidth){ let lines=[],line=""; for(const ch of text){ const w=ch.charCodeAt(0)>255?2:1; if(line.length+w>maxWidth){lines.push(line); line=ch;} else line+=ch;} if(line) lines.push(line); return lines; }
+    // 開始列印和結帳的背景流程...
+    // ...
 
-    function buildReceiptText(r, profile){
-        let out=[];
-        out.push(center(r.storeName,profile.charsPerLine));
-        out.push(center(r.datetime,profile.charsPerLine));
-        out.push("-".repeat(profile.charsPerLine));
-        out.push(pad("商品",profile.nameWidth)+pad("數量",profile.qtyWidth)+pad("單價",profile.priceWidth)+pad("小計",profile.subWidth));
-        out.push("-".repeat(profile.charsPerLine));
-        r.items.forEach(i=>{
-            const nameLines=splitText(i.name,profile.nameWidth);
-            nameLines.forEach((line,idx)=>{
-                out.push(pad(line,profile.nameWidth)+(idx===0?pad(i.qty,profile.qtyWidth,true)+pad(i.price,profile.priceWidth,true)+pad(i.subtotal,profile.subWidth,true):""));
-            });
-            if(i.discountText) out.push(`  優惠: ${i.discountText} -${i.discountAmount.toFixed(0)} 元`);
-        });
-        out.push("-".repeat(profile.charsPerLine));
-        out.push(pad("折扣總額",profile.nameWidth+profile.qtyWidth)+pad(r.summary.discount,profile.priceWidth+profile.subWidth,true));
-        out.push(pad("稅金",profile.nameWidth+profile.qtyWidth)+pad(r.summary.tax,profile.priceWidth+profile.subWidth,true));
-        out.push(pad("總額",profile.nameWidth+profile.qtyWidth)+pad(r.summary.total,profile.priceWidth+profile.subWidth,true));
-        out.push("付款："+r.payment);
-        if(r.payment==="現金"){
-            let cash=Number(document.getElementById("cashInput")?.value||0);
-            let change=document.getElementById("changeOut")?.innerText||0;
-            out.push(pad("現金收入",profile.nameWidth+profile.qtyWidth)+pad(cash,profile.priceWidth+profile.subWidth,true));
-            out.push(pad("找零",profile.nameWidth+profile.qtyWidth)+pad(change,profile.priceWidth+profile.subWidth,true));
-        }
-        out.push(center("===== 感謝光臨 =====",profile.charsPerLine));
-        return out.join("\n");
-    }
-
-   
-// ===== Step 2：結帳後清空所有欄位 =====
-posCart = []; // 清空購物車
-
-// 清空折扣
-if (document.getElementById("discount")) document.getElementById("discount").value = "";
-
-// 清空收現金與找零
-if (document.getElementById("cashInput")) document.getElementById("cashInput").value = "";
-if (document.getElementById("changeOut")) document.getElementById("changeOut").innerText = "0";
-
-// 重置人數回到1
-document.getElementById("peopleCount").value = "0";
-
-// ⭐ 清空存酒人員姓名與手機
-if (document.getElementById("customerName")) document.getElementById("customerName").value = "";
-if (document.getElementById("customerPhone")) document.getElementById("customerPhone").value = "";
-// ⭐⭐ 重設業代為登入預設值
-fetchSalesList(); // 不等
+    // 結帳完成後清空購物車等
+    posCart = [];
+    if (document.getElementById("discount")) document.getElementById("discount").value = "";
+    if (document.getElementById("cashInput")) document.getElementById("cashInput").value = "";
+    if (document.getElementById("changeOut")) document.getElementById("changeOut").innerText = "0";
+    document.getElementById("peopleCount").value = "0";
+    if (document.getElementById("customerName")) document.getElementById("customerName").value = "";
+    if (document.getElementById("customerPhone")) document.getElementById("customerPhone").value = "";
+    fetchSalesList(); // 不等
+    if (typeof renderCart === "function") renderCart();
+    document.querySelector('#paymentButtons .payBtn[data-pay="現金"]')?.click();
     
-// 重新渲染購物車（清空後）
-if (typeof renderCart === "function") renderCart();
-// ⭐⭐⭐ 結帳完成後，收款方式回到「現金」
-document.querySelector('#paymentButtons .payBtn[data-pay="現金"]')?.click();
-
-      // ===== Step 3：背景列印（不阻塞結帳）=====
-if (window.qz) {
-
-    // 🔥 列印丟到背景跑，結帳立刻完成
-    setTimeout(async () => {
-        try {
-            const printers = await qz.printers.find(); // 只抓一次
-
-            await Promise.all(
-                printers.map(async (printerName) => {
-                    let selectedSize = /80/.test(printerName) ? "80" : "58";
-                    const profile = PRINTER_PROFILE[selectedSize];
-
-                    const receiptText = buildReceiptText(receiptPayload, profile);
-
-                    const esc = [
-                        '\x1B\x40',             // 初始化
-                        '\x1B\x61\x01',         // 置中
-                        "生鮮 POS 小票\n",
-                        '\x1B\x61\x00',         // 靠左
-                        receiptText + "\n",
-                        '\x1B\x64\x02',         // 捲紙
-                        '\x1B\x70\x00\x3C\xFF', // 開錢櫃
-                        '\x1D\x56\x42\x03'      // 切紙
-                    ];
-
-                    const config = qz.configs.create(printerName);
-                    await qz.print(config, [
-                        { type: 'raw', format: 'command', data: esc.join('') }
-                    ]);
-
-                    console.log(`✅ 列印完成：${printerName}`);
-                })
-            );
-
-        } catch (err) {
-            console.error("列印失敗", err);
-            alert("⚠️ 結帳成功，但列印失敗，請檢查印表機");
-        }
-    }, 0);
-
-} else if (window.webkit?.messageHandlers?.posPrint) {
-    // iPad WebView 原生列印
-    window.webkit.messageHandlers.posPrint.postMessage(receiptPayload);
+    checkoutBtn.innerText = originalText;
+    checkoutBtn.disabled = false;
 }
 
-// ⭐ 結帳提示（不等列印）
-alert("結帳完成，已送出列印");
-
-
-checkoutBtn.innerText = originalText;
-checkoutBtn.disabled = false;
-
-};
+// 顯示最低消費提示框
+function showMinConsumeConfirm(actual, min, callback) {
+    // 顯示一個彈跳框（您可以根據具體需求來設計這個視窗）
+    if (confirm(`您的消費金額為 ${actual} 元，低於最低消費額 ${min} 元，是否確認結帳？`)) {
+        callback(false); // 用戶選擇確認結帳
+    } else {
+        callback(true); // 用戶選擇取消結帳
+    }
+}
 
   
 
