@@ -1677,7 +1677,7 @@ function calcDiscountedSubtotal(item) {
                 storeDate: nowDate.toLocaleDateString("zh-TW"),
                 expireDate: product && product["存酒期限(月)"] 
                     ? addMonths(nowDate, Number(product["存酒期限(月)"]))
-                    : addMonths(nowDate, 6)
+                    : addMonths(nowDate, 2)
             };
         });
 
