@@ -1062,7 +1062,7 @@ function addPOSItem(p, forceStore = false) {
     const now = new Date();
     let expireDate = null;
     if (forceStore) {
-        const months = p["存酒期限(月)"] ? Number(p["存酒期限(月)"]) : 6;
+        const months = p["存酒期限(月)"] ? Number(p["存酒期限(月)"]) : 2;
         const d = new Date(now);
         d.setMonth(d.getMonth() + months);
         expireDate = d.toLocaleDateString("zh-TW");
