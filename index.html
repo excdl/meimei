@@ -1725,6 +1725,13 @@ document.getElementById("posCheckout").onclick = async function () {
     let actual = parseNumber(document.getElementById("afterTax").innerText) - (Number(document.getElementById("discount").value) || 0);
     let min = getMinConsumeTotal();
 
+    // ===== 判斷是否強制使用低消金額 =====
+    const perMinConsume = Number(document.getElementById("minConsumeInput")?.value) || 0;
+    if (perMinConsume <= 300) {
+        // 強制使用低消金額 + 消費金額
+        actual = min + actual;
+    }
+
     // 如果消費金額不足，顯示最低消費提示框
     if (actual < min && !allowMinConsumeCheckout) {
         // 顯示消費金額不足的提示框
