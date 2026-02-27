@@ -1703,7 +1703,6 @@ async function printerIsReady() {
 
 // ===== 結帳：先入帳 → 再嘗試列印到自動抓取的印表機 =====
 document.getElementById("posCheckout").onclick = async function () {
-
     const checkoutBtn = document.getElementById("posCheckout");
 
     // 防止連續點擊
@@ -1723,28 +1722,33 @@ document.getElementById("posCheckout").onclick = async function () {
     }
 
     let actual = parseNumber(document.getElementById("afterTax").innerText) - (Number(document.getElementById("discount").value) || 0);
-    let min = getMinConsumeTotal();
+    let min = getMinConsumeTotal();  // 取得最低消費金額
+
+    // ===== 取得每人最低消費金額 =====
+    const perMinConsume = Number(document.getElementById("minConsumeInput")?.value) || 0;
 
     // ===== 判斷是否強制使用低消金額 =====
-    const perMinConsume = Number(document.getElementById("minConsumeInput")?.value) || 0;
     if (perMinConsume <= 300) {
-        // 強制使用低消金額 + 消費金額
+        // 強制使用低消金額 + 實際消費金額
         actual = min + actual;
+        // 更新結帳金額顯示
+        document.getElementById("afterTax").innerText = formatNumber(actual);
+        // 更新顯示最低消費金額
+        document.getElementById("minConsumeAlertText").innerHTML = `最低消費額：${formatNumber(min)} 元`;
     }
 
-    // 如果消費金額不足，顯示最低消費提示框
+    // ===== 如果消費金額不足，顯示最低消費提示框 =====
     if (actual < min && !allowMinConsumeCheckout) {
-        // 顯示消費金額不足的提示框
-        const message = `您的消費金額為 ${actual} 元，低於最低消費額 ${min} 元，是否確認結帳？`;
+        const message = `您的消費金額為 ${formatNumber(actual)} 元，低於最低消費額 ${formatNumber(min)} 元，是否確認結帳？`;
         if (confirm(message)) {
             // 用戶選擇確認結帳，即使未達最低消費，強制使用最低消費金額
             allowMinConsumeCheckout = true; // 設置允許最低消費結帳
-            document.getElementById("afterTax").innerText = min; // 強制將消費金額設為最低消費金額
+            document.getElementById("afterTax").innerText = formatNumber(min); // 強制將消費金額設為最低消費金額
             startCheckoutFlow(checkoutBtn, originalText); // 直接進行結帳流程
         } else {
             // 用戶選擇取消結帳，恢復結帳按鈕
             checkoutBtn.innerText = originalText;
-            checkoutBtn.disabled = false;
+            checkoutBtn.disabled = false; // 恢復按鈕可點擊
         }
         return; // 停止結帳流程
     }
@@ -1761,7 +1765,6 @@ document.getElementById("posCheckout").onclick = async function () {
     // 如果沒有進入最低消費檢查，則直接繼續結帳流程
     startCheckoutFlow(checkoutBtn, originalText);
 };
-
 // 處理結帳流程的函式
 async function startCheckoutFlow(checkoutBtn, originalText) {
     try {
